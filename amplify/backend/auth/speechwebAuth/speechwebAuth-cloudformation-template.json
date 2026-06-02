@@ -1,0 +1,66 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Cognito User Pool resource stack",
+  "Parameters": {
+    "env": { "Type": "String" },
+    "authRoleArn": { "Type": "String" },
+    "unauthRoleArn": { "Type": "String" }
+  },
+  "Resources": {
+    "UserPool": {
+      "Type": "AWS::Cognito::UserPool",
+      "Properties": {
+        "UserPoolName": { "Fn::Sub": "speechweb_userpool_${env}" },
+        "AutoVerifiedAttributes": ["email"],
+        "Policies": {
+          "PasswordPolicy": {
+            "MinimumLength": 8,
+            "RequireLowercase": true,
+            "RequireNumbers": true,
+            "RequireSymbols": true,
+            "RequireUppercase": true
+          }
+        },
+        "UsernameAttributes": ["email"]
+      }
+    },
+    "UserPoolClient": {
+      "Type": "AWS::Cognito::UserPoolClient",
+      "Properties": {
+        "ClientName": { "Fn::Sub": "speechweb_client_${env}" },
+        "UserPoolId": { "Ref": "UserPool" },
+        "GenerateSecret": false,
+        "ExplicitAuthFlows": ["ALLOW_USER_SRP_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"]
+      }
+    },
+    "IdentityPool": {
+      "Type": "AWS::Cognito::IdentityPool",
+      "Properties": {
+        "IdentityPoolName": { "Fn::Sub": "speechweb_identitypool_${env}" },
+        "AllowUnauthenticatedIdentities": false,
+        "CognitoIdentityProviders": [
+          {
+            "ClientId": { "Ref": "UserPoolClient" },
+            "ProviderName": { "Fn::GetAtt": ["UserPool", "ProviderName"] }
+          }
+        ]
+      }
+    },
+    "IdentityPoolRoleMap": {
+      "Type": "AWS::Cognito::IdentityPoolRoleAttachment",
+      "Properties": {
+        "IdentityPoolId": { "Ref": "IdentityPool" },
+        "Roles": {
+          "authenticated": { "Ref": "authRoleArn" },
+          "unauthenticated": { "Ref": "unauthRoleArn" }
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "Region": { "Value": { "Ref": "AWS::Region" } },
+    "UserPoolId": { "Value": { "Ref": "UserPool" } },
+    "UserPoolClientId": { "Value": { "Ref": "UserPoolClient" } },
+    "IdentityPoolId": { "Value": { "Ref": "IdentityPool" } }
+  }
+}

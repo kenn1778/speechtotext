@@ -1,0 +1,64 @@
+{
+  "auth": {
+    "speechwebAuth": {
+      "service": "Cognito",
+      "serviceType": "managed",
+      "providerPlugin": "awscloudformation",
+      "dependsOn": [],
+      "customAuth": false,
+      "frontendAuthConfig": {
+        "socialProviders": [],
+        "usernameAttributes": ["email"],
+        "signupAttributes": ["email"],
+        "passwordProtectionSettings": {
+          "passwordPolicyMinLength": 8,
+          "passwordPolicyCharacters": []
+        },
+        "mfaConfiguration": "OFF",
+        "mfaTypes": [],
+        "verificationMechanisms": ["email"]
+      }
+    }
+  },
+  "storage": {
+    "speechwebStorage": {
+      "service": "S3",
+      "serviceType": "managed",
+      "providerPlugin": "awscloudformation",
+      "dependsOn": [
+        {
+          "category": "auth",
+          "resourceName": "speechwebAuth",
+          "attributes": ["UserPoolId", "AppClientID", "IdentityPoolId"]
+        }
+      ]
+    }
+  },
+  "function": {
+    "speechwebTranscribe": {
+      "service": "Lambda",
+      "providerPlugin": "awscloudformation",
+      "build": true,
+      "dependsOn": [
+        {
+          "category": "storage",
+          "resourceName": "speechwebStorage",
+          "attributes": ["BucketName"]
+        }
+      ]
+    }
+  },
+  "api": {
+    "speechwebAPI": {
+      "service": "API Gateway",
+      "providerPlugin": "awscloudformation",
+      "dependsOn": [
+        {
+          "category": "function",
+          "resourceName": "speechwebTranscribe",
+          "attributes": ["Arn"]
+        }
+      ]
+    }
+  }
+}

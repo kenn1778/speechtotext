@@ -1,0 +1,348 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'SpeechWeb Backend: Cognito, S3, Lambda, API Gateway'
+Parameters:
+  Env:
+    Type: String
+    Default: dev
+Resources:
+  # ─── Cognito User Pool ─────────────────────────────────────
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub speechweb-userpool-${Env}
+      AutoVerifiedAttributes: [email]
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+          RequireUppercase: true
+      UsernameAttributes: [email]
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub speechweb-client-${Env}
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+  IdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Properties:
+      IdentityPoolName: !Sub speechweb-identitypool-${Env}
+      AllowUnauthenticatedIdentities: false
+      CognitoIdentityProviders:
+        - ClientId: !Ref UserPoolClient
+          ProviderName: !GetAtt UserPool.ProviderName
+  IdentityPoolRoleMap:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Properties:
+      IdentityPoolId: !Ref IdentityPool
+      Roles:
+        authenticated: !GetAtt AuthRole.Arn
+        unauthenticated: !GetAtt UnauthRole.Arn
+  AuthRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub speechweb-auth-role-${Env}
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Federated: cognito-identity.amazonaws.com }
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                cognito-identity.amazonaws.com:aud: !Ref IdentityPool
+              ForAnyValue:StringLike:
+                cognito-identity.amazonaws.com:amr: authenticated
+      Policies:
+        - PolicyName: speechweb-storage-access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [s3:PutObject, s3:GetObject, s3:DeleteObject]
+                Resource: !Sub ${AudioBucket.Arn}/*
+  UnauthRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub speechweb-unauth-role-${Env}
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Federated: cognito-identity.amazonaws.com }
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                cognito-identity.amazonaws.com:aud: !Ref IdentityPool
+              ForAnyValue:StringLike:
+                cognito-identity.amazonaws.com:amr: unauthenticated
+      Policies:
+        - PolicyName: speechweb-storage-access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [s3:GetObject]
+                Resource: !Sub ${AudioBucket.Arn}/*
+
+  # ─── S3 Bucket ────────────────────────────────────────────
+  AudioBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub speechweb-audio-${Env}-${AWS::AccountId}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins: ['*']
+            AllowedMethods: [GET, PUT, POST, HEAD]
+            AllowedHeaders: ['*']
+
+  # ─── Lambda Execution Role ────────────────────────────────
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub speechweb-lambda-role-${Env}
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: transcribe-and-s3
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - transcribe:StartTranscriptionJob
+                  - transcribe:GetTranscriptionJob
+                Resource: '*'
+              - Effect: Allow
+                Action: [s3:PutObject, s3:GetObject, s3:ListBucket]
+                Resource:
+                  - !GetAtt AudioBucket.Arn
+                  - !Sub ${AudioBucket.Arn}/*
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+
+  # ─── Lambda Function ──────────────────────────────────────
+  TranscribeFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub speechweb-transcribe-${Env}
+      Handler: index.handler
+      Runtime: nodejs18.x
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          const AWS = require('aws-sdk');
+          const crypto = require('crypto');
+          const https = require('https');
+
+          const transcribe = new AWS.TranscribeService({ region: process.env.REGION });
+          const s3 = new AWS.S3({ region: process.env.REGION });
+
+          exports.handler = async (event) => {
+            try {
+              const method = event.httpMethod;
+              const path = event.path;
+              if (method === 'POST' && path === '/transcribe') return await handleUpload(event);
+              if (method === 'GET' && path.startsWith('/transcribe/')) {
+                return await handleGet(path.split('/')[2]);
+              }
+              return { statusCode: 404, body: JSON.stringify({ error: 'Not found' }) };
+            } catch (err) {
+              console.error(err);
+              return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
+            }
+          };
+
+          async function handleUpload(event) {
+            const audioBase64 = event.body;
+            if (!audioBase64) {
+              return { statusCode: 400, body: JSON.stringify({ error: 'No audio data' }) };
+            }
+            const jobName = 'transcribe-' + crypto.randomUUID();
+            const bucket = process.env.STORAGE_BUCKET;
+            const key = 'audio/' + jobName + '.webm';
+            await s3.putObject({
+              Bucket: bucket, Key: key,
+              Body: Buffer.from(audioBase64, 'base64'),
+              ContentType: event.headers['content-type'] || 'audio/webm',
+            }).promise();
+            await transcribe.startTranscriptionJob({
+              TranscriptionJobName: jobName,
+              LanguageCode: 'en-US',
+              MediaFormat: 'webm',
+              Media: { MediaFileUri: 's3://' + bucket + '/' + key },
+              OutputBucketName: bucket,
+              OutputKey: 'transcripts/' + jobName + '.json',
+            }).promise();
+            const corsHeaders = {
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Headers': '*',
+              'Access-Control-Allow-Methods': '*',
+            };
+            return {
+              statusCode: 200,
+              headers: corsHeaders,
+              body: JSON.stringify({ jobName }),
+            };
+          }
+
+          async function handleGet(jobName) {
+            const corsHeaders = {
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Headers': '*',
+              'Access-Control-Allow-Methods': '*',
+            };
+            const resp = await transcribe.getTranscriptionJob({ TranscriptionJobName: jobName }).promise();
+            const job = resp.TranscriptionJob;
+            const status = job.TranscriptionJobStatus;
+            if (status !== 'COMPLETED') {
+              return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ status, transcript: null }) };
+            }
+            const transcriptData = await new Promise((resolve, reject) => {
+              https.get(job.Transcript.TranscriptFileUri, (res) => {
+                let d = '';
+                res.on('data', c => d += c);
+                res.on('end', () => { try { resolve(JSON.parse(d)); } catch (e) { reject(e); } });
+              }).on('error', reject);
+            });
+            const transcript = (transcriptData.results.transcripts[0] || {}).transcript || '';
+            return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ status: 'COMPLETED', transcript }) };
+          }
+      MemorySize: 512
+      Timeout: 30
+      Environment:
+        Variables:
+          REGION: !Ref AWS::Region
+          STORAGE_BUCKET: !Ref AudioBucket
+    DependsOn: LambdaExecutionRole
+
+  # ─── API Gateway ──────────────────────────────────────────
+  RestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Sub speechweb-api-${Env}
+      EndpointConfiguration: { Types: [REGIONAL] }
+  TranscribeResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref RestApi
+      ParentId: !GetAtt RestApi.RootResourceId
+      PathPart: transcribe
+  TranscribeProxyResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref RestApi
+      ParentId: !Ref TranscribeResource
+      PathPart: '{proxy+}'
+  TranscribePostMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RestApi
+      ResourceId: !Ref TranscribeResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${TranscribeFunction.Arn}/invocations
+  TranscribeProxyGetMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RestApi
+      ResourceId: !Ref TranscribeProxyResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${TranscribeFunction.Arn}/invocations
+  TranscribePostOptions:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RestApi
+      ResourceId: !Ref TranscribeResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates: { application/json: '{"statusCode":200}' }
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'POST,GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'"
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+  TranscribeProxyOptions:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RestApi
+      ResourceId: !Ref TranscribeProxyResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates: { application/json: '{"statusCode":200}' }
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'POST,GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'"
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+  ApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn: [TranscribePostMethod, TranscribeProxyGetMethod]
+    Properties:
+      RestApiId: !Ref RestApi
+      StageName: !Ref Env
+  LambdaApiPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt TranscribeFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+
+Outputs:
+  UserPoolId:
+    Value: !Ref UserPool
+  UserPoolClientId:
+    Value: !Ref UserPoolClient
+  IdentityPoolId:
+    Value: !Ref IdentityPool
+  BucketName:
+    Value: !Ref AudioBucket
+  ApiUrl:
+    Value: !Sub https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/${Env}
+  ApiRootUrl:
+    Value: !Sub https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/${Env}/transcribe
+  Region:
+    Value: !Ref AWS::Region

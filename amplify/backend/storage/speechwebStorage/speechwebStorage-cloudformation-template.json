@@ -1,0 +1,59 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "S3 Storage resource stack",
+  "Parameters": {
+    "env": { "Type": "String" },
+    "authRoleArn": { "Type": "String" },
+    "unauthRoleArn": { "Type": "String" }
+  },
+  "Resources": {
+    "AudioBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": { "Fn::Sub": "speechweb-audio-${env}-${AWS::AccountId}" },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
+        },
+        "CorsConfiguration": {
+          "CorsRules": [
+            {
+              "AllowedOrigins": ["*"],
+              "AllowedMethods": ["GET", "PUT", "POST", "HEAD"],
+              "AllowedHeaders": ["*"]
+            }
+          ]
+        }
+      }
+    },
+    "AudioBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": { "Ref": "AudioBucket" },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "AWS": { "Fn::Sub": ["${authRoleArn}", {}] } },
+              "Action": ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"],
+              "Resource": { "Fn::Sub": ["${bucketArn}/*", { "bucketArn": { "Fn::GetAtt": ["AudioBucket", "Arn"] } }] }
+            },
+            {
+              "Effect": "Allow",
+              "Principal": { "AWS": { "Fn::Sub": ["${unauthRoleArn}", {}] } },
+              "Action": ["s3:PutObject", "s3:GetObject"],
+              "Resource": { "Fn::Sub": ["${bucketArn}/*", { "bucketArn": { "Fn::GetAtt": ["AudioBucket", "Arn"] } }] }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "BucketName": { "Value": { "Ref": "AudioBucket" } },
+    "BucketArn": { "Value": { "Fn::GetAtt": ["AudioBucket", "Arn"] } }
+  }
+}

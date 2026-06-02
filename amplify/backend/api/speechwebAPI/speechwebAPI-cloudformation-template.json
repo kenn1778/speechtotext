@@ -1,0 +1,142 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "API Gateway REST API for transcription service",
+  "Parameters": {
+    "env": { "Type": "String" },
+    "authRoleArn": { "Type": "String" },
+    "unauthRoleArn": { "Type": "String" },
+    "functionArn": { "Type": "String" }
+  },
+  "Conditions": {
+    "HasFunction": { "Fn::Not": [{ "Fn::Equals": [{ "Ref": "functionArn" }, ""] }] }
+  },
+  "Resources": {
+    "RestApi": {
+      "Type": "AWS::ApiGateway::RestApi",
+      "Properties": {
+        "Name": { "Fn::Sub": "speechweb-api-${env}" },
+        "EndpointConfiguration": { "Types": ["REGIONAL"] }
+      }
+    },
+    "TranscribeResource": {
+      "Type": "AWS::ApiGateway::Resource",
+      "Properties": {
+        "RestApiId": { "Ref": "RestApi" },
+        "ParentId": { "Fn::GetAtt": ["RestApi", "RootResourceId"] },
+        "PathPart": "transcribe"
+      }
+    },
+    "TranscribeResourceProxy": {
+      "Type": "AWS::ApiGateway::Resource",
+      "Properties": {
+        "RestApiId": { "Ref": "RestApi" },
+        "ParentId": { "Ref": "TranscribeResource" },
+        "PathPart": "{proxy+}"
+      }
+    },
+    "TranscribePostMethod": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "RestApiId": { "Ref": "RestApi" },
+        "ResourceId": { "Ref": "TranscribeResource" },
+        "HttpMethod": "POST",
+        "AuthorizationType": "NONE",
+        "Integration": {
+          "Type": "AWS_PROXY",
+          "IntegrationHttpMethod": "POST",
+          "Uri": {
+            "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${functionArn}/invocations"
+          }
+        }
+      }
+    },
+    "TranscribeProxyGetMethod": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "RestApiId": { "Ref": "RestApi" },
+        "ResourceId": { "Ref": "TranscribeResourceProxy" },
+        "HttpMethod": "GET",
+        "AuthorizationType": "NONE",
+        "Integration": {
+          "Type": "AWS_PROXY",
+          "IntegrationHttpMethod": "POST",
+          "Uri": {
+            "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${functionArn}/invocations"
+          }
+        }
+      }
+    },
+    "TranscribePostOptionsMethod": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "RestApiId": { "Ref": "RestApi" },
+        "ResourceId": { "Ref": "TranscribeResource" },
+        "HttpMethod": "OPTIONS",
+        "AuthorizationType": "NONE",
+        "Integration": {
+          "Type": "MOCK",
+          "RequestTemplates": { "application/json": "{\"statusCode\":200}" },
+          "IntegrationResponses": [{
+            "StatusCode": 200,
+            "ResponseParameters": {
+              "method.response.header.Access-Control-Allow-Origin": "'*'",
+              "method.response.header.Access-Control-Allow-Methods": "'POST,GET,OPTIONS'",
+              "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'"
+            }
+          }]
+        },
+        "MethodResponses": [{
+          "StatusCode": 200,
+          "ResponseParameters": {
+            "method.response.header.Access-Control-Allow-Origin": true,
+            "method.response.header.Access-Control-Allow-Methods": true,
+            "method.response.header.Access-Control-Allow-Headers": true
+          }
+        }]
+      }
+    },
+    "TranscribeProxyOptionsMethod": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "RestApiId": { "Ref": "RestApi" },
+        "ResourceId": { "Ref": "TranscribeResourceProxy" },
+        "HttpMethod": "OPTIONS",
+        "AuthorizationType": "NONE",
+        "Integration": {
+          "Type": "MOCK",
+          "RequestTemplates": { "application/json": "{\"statusCode\":200}" },
+          "IntegrationResponses": [{
+            "StatusCode": 200,
+            "ResponseParameters": {
+              "method.response.header.Access-Control-Allow-Origin": "'*'",
+              "method.response.header.Access-Control-Allow-Methods": "'POST,GET,OPTIONS'",
+              "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'"
+            }
+          }]
+        },
+        "MethodResponses": [{
+          "StatusCode": 200,
+          "ResponseParameters": {
+            "method.response.header.Access-Control-Allow-Origin": true,
+            "method.response.header.Access-Control-Allow-Methods": true,
+            "method.response.header.Access-Control-Allow-Headers": true
+          }
+        }]
+      }
+    },
+    "Deployment": {
+      "Type": "AWS::ApiGateway::Deployment",
+      "DependsOn": ["TranscribePostMethod", "TranscribeProxyGetMethod"],
+      "Properties": {
+        "RestApiId": { "Ref": "RestApi" },
+        "StageName": { "Ref": "env" }
+      }
+    }
+  },
+  "Outputs": {
+    "RootUrl": {
+      "Value": { "Fn::Sub": "https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/${env}" }
+    },
+    "ApiId": { "Value": { "Ref": "RestApi" } }
+  }
+}

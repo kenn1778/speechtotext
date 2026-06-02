@@ -1,0 +1,8 @@
+{
+  "resourceName": "speechwebStorage",
+  "serviceType": "S3",
+  "permissions": {
+    "auth": ["read", "write"],
+    "unauth": ["read"]
+  }
+}

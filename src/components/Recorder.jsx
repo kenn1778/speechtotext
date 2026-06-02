@@ -1,15 +1,17 @@
 import { motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
-import { uploadAudioForTranscription } from '../lib/speechClient.js'
+import { uploadAudioForTranscription, getTranscriptionResult } from '../lib/speechClient.js'
+import RecordingVisualizer from './RecordingVisualizer.jsx'
 
 function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status }) {
   const [transcribing, setTranscribing] = useState(false)
   const [mediaRecorder, setMediaRecorder] = useState(null)
-  const [recordedChunks, setRecordedChunks] = useState([])
   const [allowed, setAllowed] = useState(false)
   const [liveSupported, setLiveSupported] = useState(false)
   const [listening, setListening] = useState(false)
   const recognitionRef = useRef(null)
+  const streamRef = useRef(null)
+  const chunksRef = useRef([])
 
   useEffect(() => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -22,41 +24,39 @@ function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status })
   const requestMicrophone = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
       setAllowed(true)
       const recorder = new MediaRecorder(stream)
       recorder.ondataavailable = event => {
         if (event.data.size > 0) {
-          setRecordedChunks(prev => [...prev, event.data])
+          chunksRef.current = [...chunksRef.current, event.data]
         }
       }
       recorder.onstop = () => {
-        const blob = new Blob(recordedChunks, { type: 'audio/webm' })
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
         setAudioBlob(blob)
+        chunksRef.current = []
         setStatus('recorded')
       }
       setMediaRecorder(recorder)
       setStatus('ready')
+      return recorder
     } catch (error) {
       setStatus('denied')
     }
   }
 
   const startRecording = async () => {
-    if (!mediaRecorder) {
-      await requestMicrophone()
-    }
-    setRecordedChunks([])
-    mediaRecorder?.start()
+    const recorder = mediaRecorder || await requestMicrophone()
+    if (!recorder) return
+    chunksRef.current = []
+    recorder.start()
     setStatus('recording')
   }
 
   const stopRecording = () => {
     mediaRecorder?.stop()
     setStatus('processing')
-    setTimeout(() => {
-      setTranscript('Transcription placeholder: paste the transcript here after processing.')
-      setStatus('ready')
-    }, 900)
   }
 
   const startLiveRecognition = async () => {
@@ -107,8 +107,18 @@ function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status })
     setTranscribing(true)
     setStatus('uploading')
     try {
-      const data = await uploadAudioForTranscription(audioBlob)
-      if (data.transcript) setTranscript(data.transcript)
+      const { jobName } = await uploadAudioForTranscription(audioBlob)
+      if (!jobName) throw new Error('No job name returned')
+      setStatus('transcribing')
+      let result
+      for (let i = 0; i < 60; i++) {
+        await new Promise(r => setTimeout(r, 3000))
+        result = await getTranscriptionResult(jobName)
+        if (result.status === 'COMPLETED') break
+      }
+      if (result?.status === 'COMPLETED' && result.transcript) {
+        setTranscript(result.transcript)
+      }
       setStatus('transcribed')
     } catch {
       setStatus('error')
@@ -125,7 +135,7 @@ function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status })
             <h2 className="mt-2 text-2xl font-semibold text-white">Live capture</h2>
           </div>
           <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">
-            {status === 'recording' ? 'Recording' : status === 'processing' ? 'Processing' : 'Idle'}
+            {status === 'recording' ? 'Recording' : status === 'processing' ? 'Processing' : status === 'uploading' ? 'Uploading' : status === 'transcribing' ? 'Transcribing...' : status === 'transcribed' ? 'Done' : 'Idle'}
           </div>
         </div>
 
@@ -147,6 +157,9 @@ function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status })
           >
             Stop Recording
           </motion.button>
+        </div>
+        <div className="mt-6">
+          <RecordingVisualizer stream={streamRef.current} active={status === 'recording'} />
         </div>
         <p className="mt-4 text-sm leading-6 text-slate-400">
           Tap the button to record audio. After stopping, the app simulates transcription and prepares export options.

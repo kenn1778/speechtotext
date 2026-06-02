@@ -1,0 +1,9 @@
+{
+  "authSelections": "identityPoolAndUserPool",
+  "resourceName": "speechwebAuth",
+  "serviceType": "Cognito",
+  "useDefault": "default",
+  "userpoolGroups": [],
+  "usernameAttributes": ["email"],
+  "requiredAttributes": ["email"]
+}
