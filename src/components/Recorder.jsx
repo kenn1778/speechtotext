@@ -10,6 +10,8 @@ function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status })
   const recognitionRef = useRef(null)
   const streamRef = useRef(null)
   const chunksRef = useRef([])
+  const recordingRef = useRef(false)
+  const interimRef = useRef('')
 
   useEffect(() => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -47,11 +49,13 @@ function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status })
     if (!recorder) return
     chunksRef.current = []
     recorder.start()
+    recordingRef.current = true
     setStatus('recording')
     startInlineRecognition()
   }
 
   const stopRecording = () => {
+    recordingRef.current = false
     mediaRecorder?.stop()
     stopInlineRecognition()
     setStatus('processing')
@@ -65,22 +69,50 @@ function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status })
       recognition.continuous = true
       recognition.interimResults = true
       recognition.lang = 'en-US'
+      const appendText = (fn) => {
+        setTranscript(prev => {
+          const plain = prev.replace(/<[^>]*>/g, '')
+          return plain + fn()
+        })
+      }
       recognition.onresult = (event) => {
         let final = ''
+        let interim = ''
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const res = event.results[i]
           if (res.isFinal) final += res[0].transcript + ' '
+          else interim += res[0].transcript
         }
-        if (final) setTranscript(prev => prev + final)
+        interimRef.current = interim
+        if (final) appendText(() => final)
       }
-      recognition.onerror = () => {}
-      recognition.onend = () => {}
+      recognition.onerror = () => {
+        if (recordingRef.current) {
+          try { recognition.start() } catch {}
+        }
+      }
+      recognition.onend = () => {
+        if (interimRef.current) {
+          appendText(() => interimRef.current + ' ')
+          interimRef.current = ''
+        }
+        if (recordingRef.current) {
+          try { recognition.start() } catch {}
+        }
+      }
       recognition.start()
       recognitionRef.current = recognition
     } catch (err) {}
   }
 
   const stopInlineRecognition = () => {
+    if (interimRef.current) {
+      setTranscript(prev => {
+        const plain = prev.replace(/<[^>]*>/g, '')
+        return plain + interimRef.current + ' '
+      })
+      interimRef.current = ''
+    }
     const recognition = recognitionRef.current
     if (recognition) {
       recognition.stop()
