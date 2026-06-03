@@ -10,6 +10,17 @@
       "StackName": "amplify-speechweb-dev-45acd",
       "StackId": "arn:aws:cloudformation:us-east-1:352206182975:stack/amplify-speechweb-dev-45acd/618fa030-5e60-11f1-a738-0e9d10204bcd",
       "AmplifyAppId": "d1571gurmhoepz"
+    },
+    "categories": {
+      "auth": {
+        "speechwebAuth": {}
+      },
+      "function": {
+        "speechwebTranscribe": {}
+      },
+      "hosting": {
+        "S3AndCloudFront": {}
+      }
     }
   }
 }
