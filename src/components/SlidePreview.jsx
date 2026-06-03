@@ -1,12 +1,18 @@
 import { motion } from 'framer-motion'
 import Reanimate from '../lib/reanimateWrapper.jsx'
 
+const stripHtml = (html) => {
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  return doc.body.textContent || ''
+}
+
 function SlidePreview({ transcript }) {
-  if (!transcript) return (
+  const plainText = transcript ? stripHtml(transcript) : ''
+  if (!plainText) return (
     <div className="rounded-2xl border border-white/6 bg-black/20 p-6 text-slate-400">No slides to preview.</div>
   )
 
-  const chunks = transcript.split(/\n\n|\.\s+/).filter(Boolean).slice(0, 12)
+  const chunks = plainText.split(/\n\n|\.\s+/).filter(Boolean).slice(0, 12)
 
   return (
     <div className="space-y-4">

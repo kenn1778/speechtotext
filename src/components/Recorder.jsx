@@ -7,8 +7,6 @@ function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status })
   const [transcribing, setTranscribing] = useState(false)
   const [mediaRecorder, setMediaRecorder] = useState(null)
   const [allowed, setAllowed] = useState(false)
-  const [liveSupported, setLiveSupported] = useState(false)
-  const [listening, setListening] = useState(false)
   const recognitionRef = useRef(null)
   const streamRef = useRef(null)
   const chunksRef = useRef([])
@@ -17,8 +15,6 @@ function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status })
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setStatus('unsupported')
     }
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-    setLiveSupported(Boolean(SpeechRecognition))
   }, [setStatus])
 
   const requestMicrophone = async () => {
@@ -52,54 +48,44 @@ function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status })
     chunksRef.current = []
     recorder.start()
     setStatus('recording')
+    startInlineRecognition()
   }
 
   const stopRecording = () => {
     mediaRecorder?.stop()
+    stopInlineRecognition()
     setStatus('processing')
   }
 
-  const startLiveRecognition = async () => {
+  const startInlineRecognition = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
     if (!SpeechRecognition) return
     try {
-      await navigator.mediaDevices.getUserMedia({ audio: true })
       const recognition = new SpeechRecognition()
       recognition.continuous = true
       recognition.interimResults = true
       recognition.lang = 'en-US'
       recognition.onresult = (event) => {
-        let interim = ''
         let final = ''
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const res = event.results[i]
           if (res.isFinal) final += res[0].transcript + ' '
-          else interim += res[0].transcript
         }
-        setTranscript(prev => (final ? prev + final : prev + interim))
+        if (final) setTranscript(prev => prev + final)
       }
-      recognition.onerror = () => {
-        setListening(false)
-        recognition.stop()
-      }
-      recognition.onend = () => setListening(false)
+      recognition.onerror = () => {}
+      recognition.onend = () => {}
       recognition.start()
       recognitionRef.current = recognition
-      setListening(true)
-      setStatus('listening')
-    } catch (err) {
-      setStatus('denied')
-    }
+    } catch (err) {}
   }
 
-  const stopLiveRecognition = () => {
+  const stopInlineRecognition = () => {
     const recognition = recognitionRef.current
     if (recognition) {
       recognition.stop()
       recognitionRef.current = null
     }
-    setListening(false)
-    setStatus('ready')
   }
 
   const handleTranscribe = async () => {

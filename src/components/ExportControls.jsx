@@ -1,8 +1,14 @@
 import jsPDF from 'jspdf'
 import { useState } from 'react'
 
+const stripHtml = (html) => {
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  return doc.body.textContent || ''
+}
+
 function ExportControls({ transcript, audioBlob, setStatus, setTranscript }) {
   const [exporting, setExporting] = useState(false)
+  const plainText = stripHtml(transcript)
 
   const downloadBlob = (blob, filename) => {
     const url = URL.createObjectURL(blob)
@@ -20,7 +26,7 @@ function ExportControls({ transcript, audioBlob, setStatus, setTranscript }) {
     const doc = new jsPDF({ unit: 'pt', format: 'a4' })
     const margin = 40
     const pageWidth = doc.internal.pageSize.getWidth() - margin * 2
-    const content = transcript || 'No transcript available. Record audio and convert first.'
+    const content = plainText || 'No transcript available. Record audio and convert first.'
 
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(20)
@@ -42,7 +48,7 @@ function ExportControls({ transcript, audioBlob, setStatus, setTranscript }) {
 
   const createSlides = () => {
     setExporting(true)
-    const markdown = `# SpeechWeb Slide Export\n\n${transcript || 'No transcript available'}\n`
+    const markdown = `# SpeechWeb Slide Export\n\n${plainText || 'No transcript available'}\n`
     const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' })
     downloadBlob(blob, 'speechweb-slides.md')
     setExporting(false)
