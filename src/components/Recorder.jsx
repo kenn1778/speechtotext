@@ -59,11 +59,22 @@ function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status })
     mediaRecorder?.stop()
     stopInlineRecognition()
     setStatus('processing')
+    
+    // Check if we got any transcript from speech recognition after a short delay
+    setTimeout(() => {
+      // If no transcript was generated from speech recognition, 
+      // we could automatically trigger backend transcription
+      // But for now, let's just rely on the speech recognition
+    }, 100)
   }
 
   const startInlineRecognition = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-    if (!SpeechRecognition) return
+    if (!SpeechRecognition) {
+      // SpeechRecognition not available, show error and use backend fallback
+      setStatus('no-speech-api')
+      return
+    }
     try {
       const recognition = new SpeechRecognition()
       recognition.continuous = true
@@ -86,9 +97,12 @@ function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status })
         interimRef.current = interim
         if (final) appendText(() => final)
       }
-      recognition.onerror = () => {
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error)
         if (recordingRef.current) {
-          try { recognition.start() } catch {}
+          try { recognition.start() } catch (e) {
+            console.error('Failed to restart speech recognition:', e)
+          }
         }
       }
       recognition.onend = () => {
@@ -97,12 +111,19 @@ function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status })
           interimRef.current = ''
         }
         if (recordingRef.current) {
-          try { recognition.start() } catch {}
+          try { 
+            recognition.start() 
+          } catch (e) {
+            console.error('Failed to restart speech recognition on end:', e)
+          }
         }
       }
       recognition.start()
       recognitionRef.current = recognition
-    } catch (err) {}
+    } catch (err) {
+      console.error('Speech recognition failed to start:', err)
+      setStatus('no-speech-api')
+    }
   }
 
   const stopInlineRecognition = () => {
@@ -153,7 +174,7 @@ function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status })
             <h2 className="mt-2 text-2xl font-semibold text-white">Live capture</h2>
           </div>
           <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">
-            {status === 'recording' ? 'Recording' : status === 'processing' ? 'Processing' : status === 'uploading' ? 'Uploading' : status === 'transcribing' ? 'Transcribing...' : status === 'transcribed' ? 'Done' : 'Idle'}
+            {status === 'recording' ? 'Recording' : status === 'processing' ? 'Processing' : status === 'uploading' ? 'Uploading' : status === 'transcribing' ? 'Transcribing...' : status === 'transcribed' ? 'Done' : status === 'no-speech-api' ? 'Speech API not available' : 'Idle'}
           </div>
         </div>
 
