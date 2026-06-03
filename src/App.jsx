@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Recorder from './components/Recorder.jsx'
 import TranscriptEditor from './components/TranscriptEditor.jsx'
 import ExportControls from './components/ExportControls.jsx'
@@ -9,15 +9,43 @@ function App() {
   const [transcript, setTranscript] = useState('')
   const [audioBlob, setAudioBlob] = useState(null)
   const [status, setStatus] = useState('ready')
+  const [hidden, setHidden] = useState(false)
+
+  const preventDefault = useCallback(e => e.preventDefault(), [])
 
   useEffect(() => {
     document.title = 'SpeechWeb - Record, transcribe, export'
-  }, [])
+    const onVisibility = () => setHidden(document.hidden)
+    document.addEventListener('visibilitychange', onVisibility)
+    document.addEventListener('copy', preventDefault)
+    document.addEventListener('cut', preventDefault)
+    document.addEventListener('contextmenu', preventDefault)
+    const onKey = e => {
+      if (e.key === 'PrintScreen' || (e.ctrlKey && e.key === 'p')) {
+        e.preventDefault()
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    document.addEventListener('keyup', onKey)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility)
+      document.removeEventListener('copy', preventDefault)
+      document.removeEventListener('cut', preventDefault)
+      document.removeEventListener('contextmenu', preventDefault)
+      document.removeEventListener('keydown', onKey)
+      document.removeEventListener('keyup', onKey)
+    }
+  }, [preventDefault])
 
   return (
     <div className="min-h-screen bg-ink text-pearl">
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_32%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,_rgba(255,255,255,0.05),_transparent_30%)]" />
+      {hidden && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/95 backdrop-blur-xl">
+          <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Content hidden</p>
+        </div>
+      )}
       <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col px-6 py-10 sm:px-8">
         <header className="relative z-10 mb-10 flex flex-col gap-4">
           <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-4 py-1 text-sm text-slate-300">
