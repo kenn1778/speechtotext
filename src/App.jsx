@@ -4,6 +4,7 @@ import Recorder from './components/Recorder.jsx'
 import TranscriptEditor from './components/TranscriptEditor.jsx'
 import ExportControls from './components/ExportControls.jsx'
 import SlidePreview from './components/SlidePreview.jsx'
+import { uploadAudioForTranscription, getTranscriptionResult } from './lib/speechClient.js'
 
 function App() {
   const [transcript, setTranscript] = useState('')
@@ -36,6 +37,42 @@ function App() {
       document.removeEventListener('keyup', onKey)
     }
   }, [preventDefault])
+
+  // Auto-transcribe when recording is complete and no transcript was generated
+  useEffect(() => {
+    if (status === 'recorded' && audioBlob && !transcript.trim()) {
+      // Automatically trigger transcription after a short delay
+      // to allow any speech recognition results to come in
+      const timer = setTimeout(async () => {
+        // Check if we still don't have a transcript after the timeout
+        if (!transcript.trim()) {
+          try {
+            setStatus('uploading')
+            const { jobName } = await uploadAudioForTranscription(audioBlob)
+            if (!jobName) throw new Error('No job name returned')
+            setStatus('transcribing')
+            let result
+            for (let i = 0; i < 60; i++) {
+              await new Promise(r => setTimeout(r, 3000))
+              result = await getTranscriptionResult(jobName)
+              if (result.status === 'COMPLETED') break
+            }
+            if (result?.status === 'COMPLETED' && result.transcript) {
+              setTranscript(result.transcript)
+              setStatus('transcribed')
+            } else {
+              setStatus('error')
+            }
+          } catch (error) {
+            console.error('Auto-transcription failed:', error)
+            setStatus('error')
+          }
+        }
+      }, 1000)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [status, audioBlob, transcript, setTranscript, setStatus])
 
   return (
     <div className="min-h-screen bg-ink text-pearl">

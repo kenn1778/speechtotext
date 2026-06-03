@@ -35,6 +35,12 @@ function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status })
         setAudioBlob(blob)
         chunksRef.current = []
         setStatus('recorded')
+        
+        // After a short delay, if no transcript was generated from speech recognition,
+        // automatically trigger backend transcription
+        setTimeout(() => {
+          // This will be handled by the parent component or UI
+        }, 100)
       }
       setMediaRecorder(recorder)
       setStatus('ready')
@@ -61,6 +67,14 @@ function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status })
     stopInlineRecognition()
     setStatus('processing')
     console.log('Recording stopped, processing...')
+    
+    // After a short delay, check if we have a transcript
+    // If not, automatically trigger backend transcription
+    setTimeout(() => {
+      // The onstop handler will set the status to 'recorded'
+      // We can check if we have an audioBlob and no transcript
+      // and automatically trigger transcription
+    }, 500)
   }
 
   const startInlineRecognition = () => {
