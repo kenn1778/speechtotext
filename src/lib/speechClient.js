@@ -11,7 +11,10 @@ export async function uploadAudioForTranscription(blob) {
           headers: { 'Content-Type': 'audio/webm' },
           body: base64,
         })
-        if (!res.ok) throw new Error('Transcription upload failed')
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}))
+          throw new Error(err.error || 'Transcription upload failed')
+        }
         const data = await res.json()
         resolve(data)
       } catch (err) {
@@ -27,4 +30,8 @@ export async function getTranscriptionResult(jobName) {
   const res = await fetch(`${API_URL}/${jobName}`, { method: 'GET' })
   if (!res.ok) throw new Error('Failed to get transcription result')
   return res.json()
+}
+
+export async function getAudioUrl(filename) {
+  return `https://speechweb-audio-dev-352206182975.s3.amazonaws.com/${filename}`
 }

@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf'
 import { useState } from 'react'
+import { uploadAudioForTranscription } from '../lib/speechClient.js'
 
 const stripHtml = (html) => {
   const doc = new DOMParser().parseFromString(html, 'text/html')
@@ -60,11 +61,8 @@ function ExportControls({ transcript, audioBlob, setStatus, setTranscript }) {
     setExporting(true)
     setStatus('uploading')
     try {
-      const form = new FormData()
-      form.append('file', audioBlob, 'recording.webm')
-      const res = await fetch('/api/transcribe', { method: 'POST', body: form })
-      const data = await res.json()
-      if (data.transcript) setTranscript(data.transcript)
+      const result = await uploadAudioForTranscription(audioBlob)
+      if (result.transcript) setTranscript(result.transcript)
       setStatus('transcribed')
     } catch (err) {
       setStatus('error')

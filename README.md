@@ -230,7 +230,32 @@ Recording flow:
   → Transcript appears in editor in real-time
 
 Transcription flow (API):
-  Recorded blob → REST API → Lambda → S3 → Amazon Transcribe → Result polled by client
+  Recorded blob → REST API → Lambda → S3 → OpenAI Whisper → Transcript returned
+```
+
+---
+
+## Setup
+
+### 1. OpenAI API Key (required for transcription)
+
+The Lambda function uses OpenAI Whisper to transcribe audio. You need to set your API key:
+
+```bash
+aws lambda update-function-configuration \
+  --function-name speechweb-transcribe-dev \
+  --environment "Variables={REGION=us-east-1,STORAGE_BUCKET=speechweb-audio-dev-352206182975,OPENAI_API_KEY=sk-your-key-here}"
+```
+
+### 2. Local development
+
+```bash
+# Start both frontend + proxy server
+npm run dev-all
+
+# Or separately:
+npm run dev           # Vite frontend on :5173
+npm run start-server  # Express proxy on :5174
 ```
 
 ---

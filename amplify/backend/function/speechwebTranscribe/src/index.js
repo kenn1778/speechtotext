@@ -1,13 +1,14 @@
-const {
-  TranscribeClient,
-  StartTranscriptionJobCommand,
-  GetTranscriptionJobCommand,
-} = require('@aws-sdk/client-transcribe');
-const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
-const { v4: uuidv4 } = require('uuid');
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+const https = require('https');
+const crypto = require('crypto');
 
-const transcribe = new TranscribeClient({ region: process.env.REGION || 'us-east-1' });
 const s3 = new S3Client({ region: process.env.REGION || 'us-east-1' });
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key',
+  'Access-Control-Allow-Methods': 'POST,GET,OPTIONS',
+};
 
 exports.handler = async (event) => {
   try {
@@ -15,27 +16,44 @@ exports.handler = async (event) => {
     const path = event.path;
 
     if (method === 'POST' && path === '/transcribe') {
-      return await handleUpload(event);
+      return await handleTranscribe(event);
     }
-    if (method === 'GET' && path.startsWith('/transcribe/')) {
-      const jobName = path.split('/')[2];
-      return await handleGetTranscription(jobName);
-    }
-    return { statusCode: 404, body: JSON.stringify({ error: 'Not found' }) };
+    return {
+      statusCode: 404,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'Not found' }),
+    };
   } catch (err) {
     console.error(err);
-    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
+    return {
+      statusCode: 500,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: err.message }),
+    };
   }
 };
 
-async function handleUpload(event) {
+async function handleTranscribe(event) {
   const audioBase64 = event.body;
   if (!audioBase64) {
-    return { statusCode: 400, body: JSON.stringify({ error: 'No audio data' }) };
+    return {
+      statusCode: 400,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'No audio data' }),
+    };
+  }
+
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    return {
+      statusCode: 500,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'OPENAI_API_KEY not configured' }),
+    };
   }
 
   const contentType = event.headers['content-type'] || 'audio/webm';
-  const jobName = `transcribe-${uuidv4()}`;
+  const jobName = `transcribe-${crypto.randomUUID()}`;
   const bucketName = process.env.STORAGE_BUCKET;
   const key = `audio/${jobName}.webm`;
 
@@ -48,67 +66,59 @@ async function handleUpload(event) {
     ContentType: contentType,
   }));
 
-  const mediaUri = `s3://${bucketName}/${key}`;
-  await transcribe.send(new StartTranscriptionJobCommand({
-    TranscriptionJobName: jobName,
-    LanguageCode: 'en-US',
-    MediaFormat: 'webm',
-    Media: { MediaFileUri: mediaUri },
-    OutputBucketName: bucketName,
-    OutputKey: `transcripts/${jobName}.json`,
-    Settings: {
-      ShowSpeakerLabels: false,
-      MaxSpeakerLabels: 1,
-    },
-  }));
+  const whisperText = await transcribeWithWhisper(audioBuffer, apiKey);
 
   return {
     statusCode: 200,
-    headers: { 'Access-Control-Allow-Origin': '*' },
-    body: JSON.stringify({ jobName }),
+    headers: corsHeaders,
+    body: JSON.stringify({
+      status: 'COMPLETED',
+      transcript: whisperText,
+      audioFile: key,
+      jobName,
+    }),
   };
 }
 
-async function handleGetTranscription(jobName) {
-  const response = await transcribe.send(new GetTranscriptionJobCommand({
-    TranscriptionJobName: jobName,
-  }));
+function transcribeWithWhisper(audioBuffer, apiKey) {
+  const boundary = `----FormBoundary${crypto.randomUUID()}`;
+  const bodyParts = [];
+  bodyParts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\nwhisper-1\r\n`));
+  bodyParts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="language"\r\n\r\nen\r\n`));
+  bodyParts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="response_format"\r\n\r\ntext\r\n`));
+  bodyParts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="audio.webm"\r\nContent-Type: audio/webm\r\n\r\n`));
+  bodyParts.push(audioBuffer);
+  bodyParts.push(Buffer.from(`\r\n--${boundary}--\r\n`));
+  const body = Buffer.concat(bodyParts);
 
-  const job = response.TranscriptionJob;
-  const status = job.TranscriptionJobStatus;
-
-  if (status !== 'COMPLETED') {
-    return {
-      statusCode: 200,
-      headers: { 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ status, transcript: null }),
-    };
-  }
-
-  const transcriptUri = job.Transcript.TranscriptFileUri;
-  const transcriptData = await fetchTranscriptFromUri(transcriptUri);
-  const transcriptText = transcriptData?.results?.transcripts?.[0]?.transcript || '';
-
-  return {
-    statusCode: 200,
-    headers: { 'Access-Control-Allow-Origin': '*' },
-    body: JSON.stringify({ status: 'COMPLETED', transcript: transcriptText }),
-  };
-}
-
-async function fetchTranscriptFromUri(uri) {
-  const https = require('https');
   return new Promise((resolve, reject) => {
-    https.get(uri, (res) => {
+    const req = https.request({
+      hostname: 'api.openai.com',
+      path: '/v1/audio/transcriptions',
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': `multipart/form-data; boundary=${boundary}`,
+        'Content-Length': body.length,
+      },
+    }, (res) => {
       let data = '';
       res.on('data', (chunk) => (data += chunk));
       res.on('end', () => {
-        try {
-          resolve(JSON.parse(data));
-        } catch {
-          reject(new Error('Failed to parse transcript JSON'));
+        if (res.statusCode === 200) {
+          resolve(data.trim());
+        } else {
+          try {
+            const err = JSON.parse(data);
+            reject(new Error(err.error?.message || data));
+          } catch {
+            reject(new Error(`Whisper API error ${res.statusCode}: ${data}`));
+          }
         }
       });
-    }).on('error', reject);
+    });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
   });
 }

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
-import { uploadAudioForTranscription, getTranscriptionResult } from '../lib/speechClient.js'
+import { uploadAudioForTranscription } from '../lib/speechClient.js'
 import RecordingVisualizer from './RecordingVisualizer.jsx'
 
 function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status }) {
@@ -169,16 +169,9 @@ function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status })
     setTranscribing(true)
     setStatus('uploading')
     try {
-      const { jobName } = await uploadAudioForTranscription(audioBlob)
-      if (!jobName) throw new Error('No job name returned')
       setStatus('transcribing')
-      let result
-      for (let i = 0; i < 60; i++) {
-        await new Promise(r => setTimeout(r, 3000))
-        result = await getTranscriptionResult(jobName)
-        if (result.status === 'COMPLETED') break
-      }
-      if (result?.status === 'COMPLETED' && result.transcript) {
+      const result = await uploadAudioForTranscription(audioBlob)
+      if (result.status === 'COMPLETED' && result.transcript) {
         setTranscript(result.transcript)
       }
       setStatus('transcribed')

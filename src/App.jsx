@@ -4,7 +4,7 @@ import Recorder from './components/Recorder.jsx'
 import TranscriptEditor from './components/TranscriptEditor.jsx'
 import ExportControls from './components/ExportControls.jsx'
 import SlidePreview from './components/SlidePreview.jsx'
-import { uploadAudioForTranscription, getTranscriptionResult } from './lib/speechClient.js'
+import { uploadAudioForTranscription } from './lib/speechClient.js'
 
 function App() {
   const [transcript, setTranscript] = useState('')
@@ -48,16 +48,9 @@ function App() {
         if (!transcript.trim()) {
           try {
             setStatus('uploading')
-            const { jobName } = await uploadAudioForTranscription(audioBlob)
-            if (!jobName) throw new Error('No job name returned')
             setStatus('transcribing')
-            let result
-            for (let i = 0; i < 60; i++) {
-              await new Promise(r => setTimeout(r, 3000))
-              result = await getTranscriptionResult(jobName)
-              if (result.status === 'COMPLETED') break
-            }
-            if (result?.status === 'COMPLETED' && result.transcript) {
+            const result = await uploadAudioForTranscription(audioBlob)
+            if (result.status === 'COMPLETED' && result.transcript) {
               setTranscript(result.transcript)
               setStatus('transcribed')
             } else {
