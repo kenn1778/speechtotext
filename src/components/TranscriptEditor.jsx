@@ -53,7 +53,7 @@ function TranscriptEditor({ transcript, setTranscript }) {
         suppressContentEditableWarning
         onInput={handleInput}
         onPaste={handlePaste}
-        className="min-h-[120px] sm:min-h-[160px] md:min-h-[220px] w-full rounded-3xl border border-white/10 bg-black/40 px-5 py-5 text-sm text-slate-100 outline-none transition focus:border-white/30 focus:ring-2 focus:ring-white/10 overflow-auto whitespace-pre-wrap"
+        className="min-h-[120px] sm:min-h-[160px] md:min-h-[220px] max-h-[400px] w-full rounded-3xl border border-white/10 bg-black/40 px-5 py-5 text-sm text-slate-100 outline-none transition focus:border-white/30 focus:ring-2 focus:ring-white/10 overflow-y-auto whitespace-pre-wrap"
       />
     </div>
   )

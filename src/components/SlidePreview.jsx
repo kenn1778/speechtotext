@@ -65,7 +65,8 @@ function SlidePreview({ transcript }) {
         <h4 className="text-lg font-semibold text-white">Slide Preview</h4>
         <span className="text-xs text-slate-500">{totalSlides} slide{totalSlides > 1 ? 's' : ''}</span>
       </div>
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+      <div className="max-h-[500px] overflow-y-auto pr-1 space-y-6">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         {slides.map((slide, i) => (
           <Reanimate key={i} delay={i * 0.05} className="relative">
             <motion.div
@@ -106,6 +107,7 @@ function SlidePreview({ transcript }) {
           </Reanimate>
         ))}
       </div>
+    </div>
     </div>
   )
 }
