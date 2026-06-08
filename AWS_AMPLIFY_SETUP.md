@@ -172,7 +172,7 @@ amplify publish
 
 ## Transcription Flow Summary
 
-```
+```text
 User clicks Record → MediaRecorder captures audio → Blob stored in state
 User clicks "Transcribe" → Amplify REST API → API Gateway → Lambda
 Lambda uploads to S3 → Starts Amazon Transcribe job → Returns job ID
@@ -185,7 +185,7 @@ Transcript returned to client → Displayed in TranscriptEditor
 ## File Changes Summary
 
 | File | Action |
-|---|---|
+| --- | --- |
 | `src/main.jsx` | Add Amplify.configure() |
 | `src/lib/speechClient.js` | Replace fetch with API.post() |
 | `src/components/Recorder.jsx` | No changes needed (uses speechClient) |
