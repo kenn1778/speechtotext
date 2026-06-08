@@ -78,9 +78,26 @@ function App() {
       )}
       <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col px-6 py-10 sm:px-8">
         <header className="relative z-10 mb-10 flex flex-col gap-4">
-          <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-4 py-1 text-sm text-slate-300">
-            SpeechWeb • Voice to text • PDF & slides
-          </span>
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1 text-sm text-slate-300">
+              <svg viewBox="0 0 24 24" className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <circle cx="12" cy="8" r="3" />
+                <rect x="8" y="11" width="8" height="10" rx="2" />
+                <path d="M5 14a7 7 0 0114 0" strokeWidth="1" />
+                <path d="M3 17a10 10 0 0118 0" strokeWidth="1" />
+              </svg>
+              SpeechWeb • Voice to text • PDF & slides
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-xs text-blue-300">
+              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 2a4 4 0 014 4v3a4 4 0 01-8 0V6a4 4 0 014-4z" />
+                <path d="M18 11v2a6 6 0 01-12 0v-2" />
+                <line x1="12" y1="19" x2="12" y2="22" />
+                <line x1="9" y1="22" x2="15" y2="22" />
+              </svg>
+              Johnkennedy-V1-Flash-A30b-free
+            </span>
+          </div>
           <h1 className="max-w-3xl text-3xl sm:text-4xl md:text-5xl font-semibold leading-tight text-white">
             Record speech, turn it into text, and export beautiful documents.
           </h1>

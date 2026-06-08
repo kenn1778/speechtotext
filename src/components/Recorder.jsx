@@ -1,23 +1,50 @@
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import { uploadAudioForTranscription } from '../lib/speechClient.js'
 import RecordingVisualizer from './RecordingVisualizer.jsx'
+
+function Spinner() {
+  return (
+    <svg className="animate-spin h-4 w-4 text-blue-400" viewBox="0 0 24 24" fill="none">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+    </svg>
+  )
+}
 
 function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status }) {
   const [transcribing, setTranscribing] = useState(false)
   const [mediaRecorder, setMediaRecorder] = useState(null)
   const [allowed, setAllowed] = useState(false)
+  const [showStoppedToast, setShowStoppedToast] = useState(false)
   const recognitionRef = useRef(null)
   const streamRef = useRef(null)
   const chunksRef = useRef([])
   const recordingRef = useRef(false)
   const interimRef = useRef('')
+  const toastTimerRef = useRef(null)
 
   useEffect(() => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setStatus('unsupported')
     }
   }, [setStatus])
+
+  useEffect(() => {
+    if (status === 'processing' || status === 'uploading' || status === 'transcribing') {
+      setShowStoppedToast(true)
+      clearTimeout(toastTimerRef.current)
+      toastTimerRef.current = setTimeout(() => {
+        if (status === 'transcribed' || status === 'recorded' || status === 'error') {
+          setShowStoppedToast(false)
+        }
+      }, 3000)
+    }
+    if (status === 'transcribed' || status === 'recorded') {
+      toastTimerRef.current = setTimeout(() => setShowStoppedToast(false), 2000)
+    }
+    return () => clearTimeout(toastTimerRef.current)
+  }, [status])
 
   const requestMicrophone = async () => {
     try {
@@ -35,12 +62,6 @@ function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status })
         setAudioBlob(blob)
         chunksRef.current = []
         setStatus('recorded')
-        
-        // After a short delay, if no transcript was generated from speech recognition,
-        // automatically trigger backend transcription
-        setTimeout(() => {
-          // This will be handled by the parent component or UI
-        }, 100)
       }
       setMediaRecorder(recorder)
       setStatus('ready')
@@ -54,6 +75,7 @@ function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status })
     const recorder = mediaRecorder || await requestMicrophone()
     if (!recorder) return
     chunksRef.current = []
+    setShowStoppedToast(false)
     recorder.start()
     recordingRef.current = true
     setStatus('recording')
@@ -61,27 +83,15 @@ function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status })
   }
 
   const stopRecording = () => {
-    console.log('Stopping recording')
     recordingRef.current = false
     mediaRecorder?.stop()
     stopInlineRecognition()
     setStatus('processing')
-    console.log('Recording stopped, processing...')
-    
-    // After a short delay, check if we have a transcript
-    // If not, automatically trigger backend transcription
-    setTimeout(() => {
-      // The onstop handler will set the status to 'recorded'
-      // We can check if we have an audioBlob and no transcript
-      // and automatically trigger transcription
-    }, 500)
   }
 
   const startInlineRecognition = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
     if (!SpeechRecognition) {
-      console.log('SpeechRecognition API not available')
-      // SpeechRecognition not available, show error and use backend fallback
       setStatus('no-speech-api')
       return
     }
@@ -97,7 +107,6 @@ function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status })
         })
       }
       recognition.onresult = (event) => {
-        console.log('Speech recognition result event:', event)
         let final = ''
         let interim = ''
         for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -105,51 +114,35 @@ function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status })
           if (res.isFinal) final += res[0].transcript + ' '
           else interim += res[0].transcript
         }
-        console.log('Final text:', final)
-        console.log('Interim text:', interim)
         interimRef.current = interim
         if (final) {
-          console.log('Appending final text to transcript')
           appendText(() => final)
         }
       }
       recognition.onerror = (event) => {
         console.error('Speech recognition error:', event.error)
         if (recordingRef.current) {
-          try { recognition.start() } catch (e) {
-            console.error('Failed to restart speech recognition:', e)
-          }
+          try { recognition.start() } catch (e) {}
         }
       }
       recognition.onend = () => {
-        console.log('Speech recognition ended')
         if (interimRef.current) {
-          console.log('Appending interim text to transcript')
           appendText(() => interimRef.current + ' ')
           interimRef.current = ''
         }
         if (recordingRef.current) {
-          console.log('Restarting speech recognition')
-          try { 
-            recognition.start() 
-          } catch (e) {
-            console.error('Failed to restart speech recognition on end:', e)
-          }
+          try { recognition.start() } catch (e) {}
         }
       }
       recognition.start()
       recognitionRef.current = recognition
-      console.log('Speech recognition started')
     } catch (err) {
-      console.error('Speech recognition failed to start:', err)
       setStatus('no-speech-api')
     }
   }
 
   const stopInlineRecognition = () => {
-    console.log('Stopping inline recognition')
     if (interimRef.current) {
-      console.log('Appending final interim text to transcript')
       setTranscript(prev => {
         const plain = prev.replace(/<[^>]*>/g, '')
         return plain + interimRef.current + ' '
@@ -158,7 +151,6 @@ function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status })
     }
     const recognition = recognitionRef.current
     if (recognition) {
-      console.log('Stopping speech recognition')
       recognition.stop()
       recognitionRef.current = null
     }
@@ -182,7 +174,31 @@ function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status })
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      <AnimatePresence>
+        {showStoppedToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.9 }}
+            className="absolute -top-4 left-1/2 -translate-x-1/2 z-20"
+          >
+            <div className="flex items-center gap-3 bg-gradient-to-r from-blue-900/90 to-indigo-900/90 backdrop-blur-xl border border-blue-500/30 rounded-xl px-5 py-3 shadow-lg shadow-blue-500/10 whitespace-nowrap">
+              <Spinner />
+              <div className="text-left">
+                <p className="text-sm font-medium text-blue-200">Recording stopped</p>
+                <p className="text-xs text-blue-300/70">
+                  {status === 'processing' ? 'Saving audio...' :
+                   status === 'uploading' ? 'Uploading to cloud...' :
+                   status === 'transcribing' ? 'Transcribing via Johnkennedy-V1-Flash...' :
+                   'Processing...'}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="rounded-3xl border border-white/10 bg-neutral-950/80 p-6 shadow-xl shadow-black/40">
         <div className="flex items-center justify-between gap-4">
           <div>

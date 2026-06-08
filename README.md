@@ -269,3 +269,8 @@ npm run start-server  # Express proxy on :5174
 | SSL certificate error on custom domain | Cert expired — renew via acme.sh and re-import to ACM |
 | Record button does nothing | Browser may block microphone — check permissions; or try Chrome/Edge (SpeechRecognition not supported in all browsers) |
 | Amplify CLI "Cannot prompt in non-interactive shell" | Run the command directly in a terminal instead of via the tool |
+
+
+Awesome! Record → Whisper → transcript flow is working end-to-end through AWS.
+The audio files are being saved to S3 too — you can list them anytime with:
+aws s3 ls s3://speechweb-audio-dev-352206182975/audio/

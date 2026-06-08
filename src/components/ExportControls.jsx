@@ -7,6 +7,25 @@ const stripHtml = (html) => {
   return doc.body.textContent || ''
 }
 
+const URL_REGEX = /https?:\/\/[^\s]+/g
+
+function detectLinks(text) {
+  const parts = []
+  let lastIndex = 0
+  let match
+  while ((match = URL_REGEX.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push({ text: text.slice(lastIndex, match.index), link: false })
+    }
+    parts.push({ text: match[0], link: true })
+    lastIndex = match.index + match[0].length
+  }
+  if (lastIndex < text.length) {
+    parts.push({ text: text.slice(lastIndex), link: false })
+  }
+  return parts
+}
+
 function ExportControls({ transcript, audioBlob, setStatus, setTranscript }) {
   const [exporting, setExporting] = useState(false)
   const plainText = stripHtml(transcript)
@@ -25,22 +44,60 @@ function ExportControls({ transcript, audioBlob, setStatus, setTranscript }) {
   const createPdf = () => {
     setExporting(true)
     const doc = new jsPDF({ unit: 'pt', format: 'a4' })
-    const margin = 40
+    const margin = 50
     const pageWidth = doc.internal.pageSize.getWidth() - margin * 2
     const content = plainText || 'No transcript available. Record audio and convert first.'
 
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(20)
-    doc.setTextColor(245, 245, 245)
-    doc.text('SpeechWeb Transcript', margin, 70)
+    const pageHeight = doc.internal.pageSize.getHeight()
+    const lineHeight = 16
+    let cursorY = 60
 
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(12)
-    doc.setTextColor(220, 220, 220)
-    doc.text(doc.splitTextToSize(content, pageWidth), margin, 110)
-    doc.setDrawColor(255, 255, 255)
+    doc.setFont('Times-Roman', 'bold')
+    doc.setFontSize(24)
+    doc.setTextColor(30, 30, 30)
+    doc.text('SpeechWeb Transcript', margin, cursorY)
+    cursorY += 30
+
+    doc.setFont('Times-Roman', 'italic')
+    doc.setFontSize(10)
+    doc.setTextColor(120, 120, 120)
+    const now = new Date()
+    doc.text(`Generated on ${now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, margin, cursorY)
+    cursorY += 12
+    doc.text('Powered by OpenAI Whisper — Johnkennedy-V1-Flash-A30b-free', margin, cursorY)
+    cursorY += 10
+
+    doc.setDrawColor(60, 60, 60)
     doc.setLineWidth(0.5)
-    doc.line(margin, 90, margin + pageWidth, 90)
+    doc.line(margin, cursorY, margin + pageWidth, cursorY)
+    cursorY += 20
+
+    doc.setFont('Times-Roman', 'normal')
+    doc.setFontSize(11)
+    doc.setTextColor(40, 40, 40)
+
+    const lines = doc.splitTextToSize(content, pageWidth)
+    for (const line of lines) {
+      if (cursorY + lineHeight > pageHeight - margin) {
+        doc.addPage()
+        cursorY = margin
+      }
+      const parts = detectLinks(line)
+      let xOffset = margin
+      for (const part of parts) {
+        doc.setTextColor(40, 40, 40)
+        doc.setFont('Times-Roman', 'normal')
+        if (part.link) {
+          doc.setTextColor(0, 80, 200)
+          doc.setFont('Times-Roman', 'italic')
+          doc.textWithLink(part.text, xOffset, cursorY, { url: part.text })
+        } else {
+          doc.text(part.text, xOffset, cursorY)
+        }
+        xOffset += doc.getTextWidth(part.text)
+      }
+      cursorY += lineHeight
+    }
 
     doc.save('speechweb-transcript.pdf')
     setExporting(false)
