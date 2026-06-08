@@ -4,7 +4,9 @@
   "Parameters": {
     "env": { "Type": "String" },
     "authRoleArn": { "Type": "String" },
-    "unauthRoleArn": { "Type": "String" }
+    "unauthRoleArn": { "Type": "String" },
+    "googleClientId": { "Type": "String" },
+    "googleAppClientSecretGoogle": { "Type": "String" }
   },
   "Resources": {
     "UserPool": {
@@ -24,13 +26,55 @@
         "UsernameAttributes": ["email"]
       }
     },
+    "GoogleProvider": {
+      "Type": "AWS::Cognito::UserPoolIdentityProvider",
+      "Properties": {
+        "ProviderName": "Google",
+        "ProviderType": "Google",
+        "UserPoolId": { "Ref": "UserPool" },
+        "ProviderDetails": {
+          "client_id": { "Ref": "googleClientId" },
+          "client_secret": { "Ref": "googleAppClientSecretGoogle" },
+          "authorize_scopes": "profile email openid"
+        },
+        "AttributeMapping": {
+          "email": "email",
+          "name": "name",
+          "picture": "picture"
+        }
+      },
+      "DependsOn": ["UserPool"]
+    },
     "UserPoolClient": {
       "Type": "AWS::Cognito::UserPoolClient",
       "Properties": {
         "ClientName": { "Fn::Sub": "speechweb_client_${env}" },
         "UserPoolId": { "Ref": "UserPool" },
         "GenerateSecret": false,
-        "ExplicitAuthFlows": ["ALLOW_USER_SRP_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"]
+        "ExplicitAuthFlows": ["ALLOW_USER_SRP_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"],
+        "SupportedIdentityProviders": ["COGNITO", "Google"],
+        "CallbackURLs": [
+          "https://text2speech.duckdns.org/",
+          "https://d139i2fhyuv4er.cloudfront.net/",
+          "http://localhost:5173/"
+        ],
+        "LogoutURLs": [
+          "https://text2speech.duckdns.org/",
+          "https://d139i2fhyuv4er.cloudfront.net/",
+          "http://localhost:5173/"
+        ],
+        "AllowedOAuthFlows": ["code"],
+        "AllowedOAuthScopes": ["profile", "email", "openid", "aws.cognito.signin.user.admin"],
+        "AllowedOAuthFlowsUserPoolClient": true,
+        "PreventUserExistenceErrors": "ENABLED"
+      },
+      "DependsOn": ["GoogleProvider"]
+    },
+    "UserPoolDomain": {
+      "Type": "AWS::Cognito::UserPoolDomain",
+      "Properties": {
+        "UserPoolId": { "Ref": "UserPool" },
+        "Domain": { "Fn::Sub": "speechweb-auth-${env}" }
       }
     },
     "IdentityPool": {

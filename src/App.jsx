@@ -1,14 +1,17 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useAuthenticator } from '@aws-amplify/ui-react'
 import Recorder from './components/Recorder.jsx'
 import TranscriptEditor from './components/TranscriptEditor.jsx'
 import ExportControls from './components/ExportControls.jsx'
 import SlidePreview from './components/SlidePreview.jsx'
 import HistoryPanel from './components/HistoryPanel.jsx'
+import LoginPage from './components/LoginPage.jsx'
 import { uploadAudioForTranscription } from './lib/speechClient.js'
 import { addHistoryItem } from './lib/historyStore.js'
 
 function App() {
+  const { user, signOut } = useAuthenticator((context) => [context.user, context.signOut])
   const [transcript, setTranscript] = useState('')
   const [audioBlob, setAudioBlob] = useState(null)
   const [status, setStatus] = useState('ready')
@@ -82,6 +85,7 @@ function App() {
   }, [status, audioBlob, transcript, setTranscript, setStatus])
 
   return (
+    <LoginPage>
     <div className="min-h-screen bg-ink text-pearl">
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_32%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,_rgba(255,255,255,0.05),_transparent_30%)]" />
@@ -171,8 +175,11 @@ function App() {
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}
         onLoadTranscript={(t) => { setTranscript(t); savedTranscriptRef.current = t }}
+        user={user}
+        onSignOut={signOut}
       />
     </div>
+    </LoginPage>
   )
 }
 

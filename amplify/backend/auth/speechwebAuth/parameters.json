@@ -5,5 +5,7 @@
   "useDefault": "default",
   "userpoolGroups": [],
   "usernameAttributes": ["email"],
-  "requiredAttributes": ["email"]
+  "requiredAttributes": ["email"],
+  "googleClientId": "YOUR_GOOGLE_CLIENT_ID",
+  "googleAppClientSecretGoogle": "YOUR_GOOGLE_CLIENT_SECRET"
 }

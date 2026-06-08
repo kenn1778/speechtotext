@@ -6,13 +6,14 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom'],
-          'vendor-pdf': ['jspdf'],
-          'vendor-animation': ['framer-motion'],
-        }
+        manualChunks(id) {
+          if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/')) return 'vendor-react'
+          if (id.includes('node_modules/jspdf')) return 'vendor-pdf'
+          if (id.includes('node_modules/framer-motion')) return 'vendor-animation'
+          if (id.includes('node_modules/aws-amplify') || id.includes('node_modules/@aws-amplify')) return 'vendor-amplify'
+        },
       }
     },
-    chunkSizeWarningLimit: 400
+    chunkSizeWarningLimit: 600
   }
 })

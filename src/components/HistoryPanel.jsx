@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import { getHistory, groupByDate, clearHistory } from '../lib/historyStore.js'
 
-function HistoryPanel({ open, onClose, onLoadTranscript }) {
+function HistoryPanel({ open, onClose, onLoadTranscript, user, onSignOut }) {
   const [history, setHistory] = useState([])
   const panelRef = useRef(null)
 
@@ -71,6 +71,35 @@ function HistoryPanel({ open, onClose, onLoadTranscript }) {
               </div>
             </div>
 
+            {user && (
+              <div className="flex items-center gap-3 px-5 py-3 border-b border-white/6 bg-white/3">
+                <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center overflow-hidden flex-shrink-0">
+                  {user.attributes?.picture ? (
+                    <img src={user.attributes.picture} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <svg viewBox="0 0 24 24" className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white truncate">{user.attributes?.name || user.attributes?.email || 'User'}</p>
+                  <p className="text-[11px] text-slate-500 truncate">{user.attributes?.email || ''}</p>
+                </div>
+                <button
+                  onClick={onSignOut}
+                  className="text-xs text-red-400 hover:text-red-300 px-2.5 py-1.5 rounded-lg hover:bg-red-500/10 transition flex items-center gap-1.5"
+                >
+                  <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                    <polyline points="16,17 21,12 16,7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
+                  Sign out
+                </button>
+              </div>
+            )}
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6">
               {history.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-full text-center text-slate-500 pt-20">
