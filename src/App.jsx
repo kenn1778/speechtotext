@@ -1,6 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useAuthenticator } from '@aws-amplify/ui-react'
 import Recorder from './components/Recorder.jsx'
 import TranscriptEditor from './components/TranscriptEditor.jsx'
 import ExportControls from './components/ExportControls.jsx'
@@ -10,8 +9,7 @@ import LoginPage from './components/LoginPage.jsx'
 import { uploadAudioForTranscription } from './lib/speechClient.js'
 import { addHistoryItem } from './lib/historyStore.js'
 
-function AppContent() {
-  const { user, signOut } = useAuthenticator((context) => [context.user, context.signOut])
+function AppContent({ user, onSignOut }) {
   const [transcript, setTranscript] = useState('')
   const [audioBlob, setAudioBlob] = useState(null)
   const [status, setStatus] = useState('ready')
@@ -20,6 +18,12 @@ function AppContent() {
   const savedTranscriptRef = useRef('')
 
   const preventDefault = useCallback(e => e.preventDefault(), [])
+
+  const displayUser = user?.attributes?.email
+    ? user
+    : user
+      ? { attributes: { email: user.username, name: user.username } }
+      : null
 
   useEffect(() => {
     document.title = 'SpeechWeb - Record, transcribe, export'
@@ -169,19 +173,59 @@ function AppContent() {
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}
         onLoadTranscript={(t) => { setTranscript(t); savedTranscriptRef.current = t }}
-        user={user}
-        onSignOut={signOut}
+        user={displayUser}
+        onSignOut={onSignOut}
       />
     </div>
   )
 }
 
 function App() {
-  return (
-    <LoginPage>
-      <AppContent />
-    </LoginPage>
-  )
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { getCurrentUser, fetchUserAttributes } = await import('aws-amplify/auth')
+        const currentUser = await getCurrentUser()
+        let attributes = {}
+        try { attributes = await fetchUserAttributes() } catch {}
+        setUser({ ...currentUser, attributes })
+      } catch {
+        setUser(null)
+      } finally {
+        setLoading(false)
+      }
+    })()
+  }, [])
+
+  const handleAuth = (authedUser) => {
+    setUser(authedUser)
+  }
+
+  const handleSignOut = async () => {
+    try {
+      const { signOut } = await import('aws-amplify/auth')
+      await signOut()
+    } finally {
+      setUser(null)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-ink">
+        <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <LoginPage onAuth={handleAuth} />
+  }
+
+  return <AppContent user={user} onSignOut={handleSignOut} />
 }
 
 export default App
