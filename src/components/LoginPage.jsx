@@ -4,10 +4,10 @@ import { motion } from 'framer-motion'
 function GoogleIcon() {
   return (
     <svg viewBox="0 0 48 48" className="w-5 h-5">
-      <path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.6-5.8 8-11.3 8-6.4 0-11.5-5.1-11.5-11.5S17.6 13 24 13c2.9 0 5.5 1.1 7.5 2.8l5.7-5.7C33.8 7.1 29.2 5 24 5 13.5 5 5 13.5 5 24s8.5 19 19 19c9.4 0 17.3-6.5 18.9-15.3.3-1.5.5-3 .5-4.7 0-1.5-.3-3-.8-4.4z"/>
-      <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.9 14.8 19 11 24 11c2.9 0 5.5 1.1 7.5 2.8l5.7-5.7C33.8 7.1 29.2 5 24 5c-6.9 0-13 3.3-16.8 8.4l1.1 1.3z"/>
-      <path fill="#4CAF50" d="M24 43c5.2 0 9.8-2.1 13.2-5.5l-6.1-5.2c-1.8 1.2-4 2-6.7 2-4.5 0-8.3-2.8-9.8-6.7l-6.5 5c2.8 5.9 9.6 10.4 17.9 10.4z"/>
-      <path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.2 4.3-4.2 5.7.1 0 6.1 5.3 6.1 5.3 4.6-4.3 7.3-10.6 7.3-18.4 0-1.5-.3-3-.8-4.4z"/>
+      <path fill="#ff9c07" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.6-5.8 8-11.3 8-6.4 0-11.5-5.1-11.5-11.5S17.6 13 24 13c2.9 0 5.5 1.1 7.5 2.8l5.7-5.7C33.8 7.1 29.2 5 24 5 13.5 5 5 13.5 5 24s8.5 19 19 19c9.4 0 17.3-6.5 18.9-15.3.3-1.5.5-3 .5-4.7 0-1.5-.3-3-.8-4.4z"/>
+      <path fill="#8a2101" d="M6.3 14.7l6.6 4.8C14.9 14.8 19 11 24 11c2.9 0 5.5 1.1 7.5 2.8l5.7-5.7C33.8 7.1 29.2 5 24 5c-6.9 0-13 3.3-16.8 8.4l1.1 1.3z"/>
+      <path fill="#2dbd32" d="M24 43c5.2 0 9.8-2.1 13.2-5.5l-6.1-5.2c-1.8 1.2-4 2-6.7 2-4.5 0-8.3-2.8-9.8-6.7l-6.5 5c2.8 5.9 9.6 10.4 17.9 10.4z"/>
+      <path fill="#1988d2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.2 4.3-4.2 5.7.1 0 6.1 5.3 6.1 5.3 4.6-4.3 7.3-10.6 7.3-18.4 0-1.5-.3-3-.8-4.4z"/>
     </svg>
   )
 }
@@ -42,7 +42,15 @@ function LoginPage({ onAuth, onSignOut, user }) {
       const { signInWithRedirect } = await import('aws-amplify/auth')
       await signInWithRedirect({ provider: 'google' })
     } catch (err) {
-      setError('Google sign-in is not configured yet. Run amplify push first.')
+      const msg = err?.message || err?.name || ''
+      if (msg.includes('not configured') || msg.includes('OAuth') || msg.includes('domain')) {
+        setError('Google sign-in needs deployment: run `amplify push` with your Google Client Secret, then add the Cognito redirect URI to your Google OAuth client.')
+      } else if (msg.includes('popup')) {
+        setError('Popup was blocked. Allow popups for this site and try again.')
+      } else {
+        setError(msg || 'Google sign-in failed. Check console for details.')
+      }
+      console.warn('Google sign-in error:', err)
     }
   }
 
@@ -114,7 +122,7 @@ function LoginPage({ onAuth, onSignOut, user }) {
                 <path d="M3 17a10 10 0 0118 0" strokeWidth="1" />
               </svg>
             </div>
-            <h1 className="text-2xl font-semibold text-white">Welcome to SpeechWeb</h1>
+            <h1 className="text-2xl font-semibold text-white">Welcome to Agent Kennedy</h1>
             <p className="text-sm text-slate-400 mt-1">Record, transcribe, export</p>
           </div>
 
