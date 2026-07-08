@@ -6,6 +6,7 @@ import ExportControls from './components/ExportControls.jsx'
 import SlidePreview from './components/SlidePreview.jsx'
 import HistoryPanel from './components/HistoryPanel.jsx'
 import LoginPage from './components/LoginPage.jsx'
+import LandingPage from './components/LandingPage.jsx'
 import { uploadAudioForTranscription } from './lib/speechClient.js'
 import { addHistoryItem } from './lib/historyStore.js'
 
@@ -183,6 +184,7 @@ function AppContent({ user, onSignOut }) {
 function App() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [showLogin, setShowLogin] = useState(false)
 
   useEffect(() => {
     (async () => {
@@ -221,7 +223,11 @@ function App() {
     )
   }
 
-  if (!user) {
+  if (!user && !showLogin) {
+    return <LandingPage onSignIn={() => setShowLogin(true)} />
+  }
+
+  if (!user && showLogin) {
     return <LoginPage onAuth={handleAuth} />
   }
 
