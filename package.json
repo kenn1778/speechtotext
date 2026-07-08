@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@aws-amplify/ui-react": "^6.15.4",
-    "aws-amplify": "^6.17.0",
+    "aws-amplify": "^6.18.0",
     "concurrently": "^10.0.3",
     "framer-motion": "^11.18.2",
     "jspdf": "^4.2.1",
@@ -23,9 +23,9 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.7.0",
-    "autoprefixer": "^10.4.20",
-    "playwright": "^1.36.0",
-    "postcss": "^8.4.35",
+    "autoprefixer": "^10.5.2",
+    "playwright": "^1.61.1",
+    "postcss": "^8.5.16",
     "tailwindcss": "^3.4.19",
     "vite": "^5.4.21"
   }

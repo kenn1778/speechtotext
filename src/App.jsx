@@ -10,7 +10,7 @@ import LoginPage from './components/LoginPage.jsx'
 import { uploadAudioForTranscription } from './lib/speechClient.js'
 import { addHistoryItem } from './lib/historyStore.js'
 
-function App() {
+function AppContent() {
   const { user, signOut } = useAuthenticator((context) => [context.user, context.signOut])
   const [transcript, setTranscript] = useState('')
   const [audioBlob, setAudioBlob] = useState(null)
@@ -55,13 +55,9 @@ function App() {
     }
   }, [status, transcript])
 
-  // Auto-transcribe when recording is complete and no transcript was generated
   useEffect(() => {
     if (status === 'recorded' && audioBlob && !transcript.trim()) {
-      // Automatically trigger transcription after a short delay
-      // to allow any speech recognition results to come in
       const timer = setTimeout(async () => {
-        // Check if we still don't have a transcript after the timeout
         if (!transcript.trim()) {
           try {
             setStatus('uploading')
@@ -79,13 +75,11 @@ function App() {
           }
         }
       }, 1000)
-      
       return () => clearTimeout(timer)
     }
   }, [status, audioBlob, transcript, setTranscript, setStatus])
 
   return (
-    <LoginPage>
     <div className="min-h-screen bg-ink text-pearl">
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_32%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,_rgba(255,255,255,0.05),_transparent_30%)]" />
@@ -179,6 +173,13 @@ function App() {
         onSignOut={signOut}
       />
     </div>
+  )
+}
+
+function App() {
+  return (
+    <LoginPage>
+      <AppContent />
     </LoginPage>
   )
 }
