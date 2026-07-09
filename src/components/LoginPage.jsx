@@ -50,6 +50,7 @@ function LoginPage({ onAuth, onSignOut, user }) {
       + '&client_id=' + OAUTH_CLIENT_ID
       + '&scope=' + encodeURIComponent('openid email profile')
       + '&state=' + state
+      + '&prompt=select_account'
     window.location.assign(url)
   }
 
