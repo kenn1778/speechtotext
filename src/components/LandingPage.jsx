@@ -13,20 +13,25 @@ function GoogleIcon() {
 }
 
 function LandingPage({ onSignIn }) {
-  const handleGoogleSignIn = () => {
-    const OAUTH_DOMAIN = 'speechweb-auth-dev.auth.us-east-1.amazoncognito.com'
-    const OAUTH_CLIENT_ID = '6uafsoq8rlvuh3aj0opluh1l2t'
-    const redirectUri = window.location.origin + '/'
-    const state = crypto.randomUUID()
-    const url = 'https://' + OAUTH_DOMAIN + '/login'
-      + '?client_id=' + OAUTH_CLIENT_ID
-      + '&response_type=code'
-      + '&redirect_uri=' + encodeURIComponent(redirectUri)
-      + '&scope=' + encodeURIComponent('openid email profile')
-      + '&state=' + state
-      + '&identity_provider=Google'
-      + '&prompt=select_account'
-    window.location.assign(url)
+  const handleGoogleSignIn = async () => {
+    try {
+      const { signInWithRedirect } = await import('aws-amplify/auth')
+      await signInWithRedirect({ provider: 'google' })
+    } catch (err) {
+      const OAUTH_DOMAIN = 'speechweb-auth-dev.auth.us-east-1.amazoncognito.com'
+      const OAUTH_CLIENT_ID = '6uafsoq8rlvuh3aj0opluh1l2t'
+      const redirectUri = window.location.origin + '/'
+      const state = crypto.randomUUID()
+      const url = 'https://' + OAUTH_DOMAIN + '/login'
+        + '?client_id=' + OAUTH_CLIENT_ID
+        + '&response_type=code'
+        + '&redirect_uri=' + encodeURIComponent(redirectUri)
+        + '&scope=' + encodeURIComponent('openid email profile')
+        + '&state=' + state
+        + '&identity_provider=Google'
+        + '&prompt=select_account'
+      window.location.assign(url)
+    }
   }
   return (
     <div className="min-h-screen bg-ink text-pearl relative overflow-hidden">
