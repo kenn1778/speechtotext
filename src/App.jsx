@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Hub } from 'aws-amplify/utils'
 import Recorder from './components/Recorder.jsx'
 import TranscriptEditor from './components/TranscriptEditor.jsx'
 import ExportControls from './components/ExportControls.jsx'
@@ -186,20 +187,43 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [showLogin, setShowLogin] = useState(false)
 
+  const fetchUser = async () => {
+    try {
+      const { getCurrentUser, fetchUserAttributes } = await import('aws-amplify/auth')
+      const currentUser = await getCurrentUser()
+      let attributes = {}
+      try { attributes = await fetchUserAttributes() } catch {}
+      setUser({ ...currentUser, attributes })
+      return true
+    } catch {
+      setUser(null)
+      return false
+    }
+  }
+
   useEffect(() => {
-    (async () => {
-      try {
-        const { getCurrentUser, fetchUserAttributes } = await import('aws-amplify/auth')
-        const currentUser = await getCurrentUser()
-        let attributes = {}
-        try { attributes = await fetchUserAttributes() } catch {}
-        setUser({ ...currentUser, attributes })
-      } catch {
+    const isOAuthRedirect = new URLSearchParams(window.location.search).has('code')
+      || window.location.hash.includes('id_token')
+
+    const unsubscribe = Hub.listen('auth', ({ payload }) => {
+      if (payload.event === 'signedIn') {
+        fetchUser().finally(() => setLoading(false))
+      }
+      if (payload.event === 'signedOut') {
         setUser(null)
-      } finally {
         setLoading(false)
       }
+    })
+
+    ;(async () => {
+      if (isOAuthRedirect) {
+        await new Promise(r => setTimeout(r, 2000))
+      }
+      await fetchUser()
+      setLoading(false)
     })()
+
+    return () => unsubscribe()
   }, [])
 
   const handleAuth = (authedUser) => {
@@ -218,7 +242,10 @@ function App() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-ink">
-        <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs text-slate-500">Signing in...</p>
+        </div>
       </div>
     )
   }

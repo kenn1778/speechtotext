@@ -22,6 +22,9 @@ function LoginPage({ onAuth, onSignOut, user }) {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
+  const OAUTH_DOMAIN = 'speechweb-auth-dev.auth.us-east-1.amazoncognito.com'
+  const OAUTH_CLIENT_ID = '6uafsoq8rlvuh3aj0opluh1l2t'
+
   const resetForm = () => {
     setEmail('')
     setPassword('')
@@ -44,11 +47,20 @@ function LoginPage({ onAuth, onSignOut, user }) {
     } catch (err) {
       const msg = err?.message || err?.name || ''
       if (msg.includes('not configured') || msg.includes('OAuth') || msg.includes('domain')) {
-        setError('Google sign-in needs deployment: run `amplify push` with your Google Client Secret, then add the Cognito redirect URI to your Google OAuth client.')
+        const redirectUri = window.location.origin + '/'
+        const state = crypto.randomUUID()
+        const url = 'https://' + OAUTH_DOMAIN + '/oauth2/authorize'
+          + '?identity_provider=Google'
+          + '&redirect_uri=' + encodeURIComponent(redirectUri)
+          + '&response_type=code'
+          + '&client_id=' + OAUTH_CLIENT_ID
+          + '&scope=' + encodeURIComponent('openid email profile')
+          + '&state=' + state
+        window.location.assign(url)
       } else if (msg.includes('popup')) {
         setError('Popup was blocked. Allow popups for this site and try again.')
       } else {
-        setError(msg || 'Google sign-in failed. Check console for details.')
+        setError(msg || 'Google sign-in failed.')
       }
       console.warn('Google sign-in error:', err)
     }
@@ -61,14 +73,15 @@ function LoginPage({ onAuth, onSignOut, user }) {
 
     try {
       if (mode === 'login') {
-        const { signIn } = await import('aws-amplify/auth')
-        const { isSignedIn, nextStep } = await signIn({ username: email, password })
-        if (isSignedIn) {
-          const { getCurrentUser } = await import('aws-amplify/auth')
+        const { signIn, getCurrentUser } = await import('aws-amplify/auth')
+        const result = await signIn({ username: email, password })
+        if (result.isSignedIn) {
           const user = await getCurrentUser()
           onAuth(user)
-        } else if (nextStep?.signInStep === 'CONFIRM_SIGN_UP') {
+        } else if (result.nextStep?.signInStep === 'CONFIRM_SIGN_UP') {
           setMode('confirm')
+        } else {
+          setError('Login failed. Check your credentials.')
         }
       } else if (mode === 'signup') {
         const { signUp } = await import('aws-amplify/auth')
@@ -79,12 +92,16 @@ function LoginPage({ onAuth, onSignOut, user }) {
         })
         setMode('confirm')
       } else if (mode === 'confirm') {
-        const { confirmSignUp, signIn } = await import('aws-amplify/auth')
+        const { confirmSignUp, signIn, getCurrentUser } = await import('aws-amplify/auth')
         await confirmSignUp({ username: email, confirmationCode: confirmCode })
-        await signIn({ username: email, password })
-        const { getCurrentUser } = await import('aws-amplify/auth')
-        const user = await getCurrentUser()
-        onAuth(user)
+        const result = await signIn({ username: email, password })
+        if (result.isSignedIn) {
+          const user = await getCurrentUser()
+          onAuth(user)
+        } else {
+          setError('Sign-in after confirmation failed. Try logging in.')
+          setMode('login')
+        }
       } else if (mode === 'forgot') {
         const { resetPassword } = await import('aws-amplify/auth')
         await resetPassword({ username: email })
@@ -92,10 +109,26 @@ function LoginPage({ onAuth, onSignOut, user }) {
       } else if (mode === 'forgotConfirm') {
         const { confirmResetPassword } = await import('aws-amplify/auth')
         await confirmResetPassword({ username: email, confirmationCode: confirmCode, newPassword })
+        setError('Password reset successful. Please log in.')
         switchMode('login')
       }
     } catch (err) {
-      setError(err?.message || err?.name || 'An error occurred')
+      const msg = err?.message || err?.name || 'An error occurred'
+      if (msg.includes('CodeMismatch') || msg.includes('code mismatch')) {
+        setError('Invalid confirmation code. Please check and try again.')
+      } else if (msg.includes('ExpiredCode')) {
+        setError('Confirmation code expired. Request a new one.')
+      } else if (msg.includes('UserNotFoundException')) {
+        setError('No account found with this email.')
+      } else if (msg.includes('NotAuthorizedException')) {
+        setError('Incorrect email or password.')
+      } else if (msg.includes('UsernameExistsException')) {
+        setError('An account with this email already exists. Try logging in.')
+      } else if (msg.includes('InvalidPasswordException')) {
+        setError('Password must be at least 8 characters.')
+      } else {
+        setError(msg)
+      }
     } finally {
       setSubmitting(false)
     }
