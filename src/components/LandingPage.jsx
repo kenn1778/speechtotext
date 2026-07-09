@@ -3,10 +3,10 @@ import { motion } from 'framer-motion'
 function GoogleIcon() {
   return (
     <svg viewBox="0 0 48 48" className="w-5 h-5">
-      <path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.6-5.8 8-11.3 8-6.4 0-11.5-5.1-11.5-11.5S17.6 13 24 13c2.9 0 5.5 1.1 7.5 2.8l5.7-5.7C33.8 7.1 29.2 5 24 5 13.5 5 5 13.5 5 24s8.5 19 19 19c9.4 0 17.3-6.5 18.9-15.3.3-1.5.5-3 .5-4.7 0-1.5-.3-3-.8-4.4z"/>
-      <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.9 14.8 19 11 24 11c2.9 0 5.5 1.1 7.5 2.8l5.7-5.7C33.8 7.1 29.2 5 24 5c-6.9 0-13 3.3-16.8 8.4l1.1 1.3z"/>
-      <path fill="#4CAF50" d="M24 43c5.2 0 9.8-2.1 13.2-5.5l-6.1-5.2c-1.8 1.2-4 2-6.7 2-4.5 0-8.3-2.8-9.8-6.7l-6.5 5c2.8 5.9 9.6 10.4 17.9 10.4z"/>
-      <path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.2 4.3-4.2 5.7.1 0 6.1 5.3 6.1 5.3 4.6-4.3 7.3-10.6 7.3-18.4 0-1.5-.3-3-.8-4.4z"/>
+      <path fill="#ff8b07" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.6-5.8 8-11.3 8-6.4 0-11.5-5.1-11.5-11.5S17.6 13 24 13c2.9 0 5.5 1.1 7.5 2.8l5.7-5.7C33.8 7.1 29.2 5 24 5 13.5 5 5 13.5 5 24s8.5 19 19 19c9.4 0 17.3-6.5 18.9-15.3.3-1.5.5-3 .5-4.7 0-1.5-.3-3-.8-4.4z"/>
+      <path fill="#8a2203" d="M6.3 14.7l6.6 4.8C14.9 14.8 19 11 24 11c2.9 0 5.5 1.1 7.5 2.8l5.7-5.7C33.8 7.1 29.2 5 24 5c-6.9 0-13 3.3-16.8 8.4l1.1 1.3z"/>
+      <path fill="#00b306" d="M24 43c5.2 0 9.8-2.1 13.2-5.5l-6.1-5.2c-1.8 1.2-4 2-6.7 2-4.5 0-8.3-2.8-9.8-6.7l-6.5 5c2.8 5.9 9.6 10.4 17.9 10.4z"/>
+      <path fill="#013d50" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.2 4.3-4.2 5.7.1 0 6.1 5.3 6.1 5.3 4.6-4.3 7.3-10.6 7.3-18.4 0-1.5-.3-3-.8-4.4z"/>
     </svg>
   )
 }
@@ -28,13 +28,13 @@ function LandingPage({ onSignIn }) {
           SpeechWeb
         </div>
         <div className="flex items-center gap-4">
-          <a href="/privacy.html" className="text-sm text-slate-400 hover:text-white transition">Privacy</a>
-          <a href="/terms.html" className="text-sm text-slate-400 hover:text-white transition">Terms</a>
+          <a href="/privacy.html" className="px-5 py-2 rounded-xl bg-orange-600 hover:bg-green-500 text-sm text-slate-400 hover:text-white transition">Privacy</a>
+          <a href="/terms.html" className="px-5 py-2 rounded-xl bg-yellow-600 hover:bg-gray-500 text-sm text-slate-400 hover:text-white transition">Terms</a>
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={onSignIn}
-            className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition"
+            className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-green-500 text-white font-medium text-sm transition"
           >
             Sign in
           </motion.button>
@@ -53,10 +53,10 @@ function LandingPage({ onSignIn }) {
             Voice to text • PDF export • Slides
           </div>
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-semibold leading-tight text-white mb-5 tracking-tight">
-            Record speech, turn it into text, and export beautiful documents.
+            Just Speech and Text
           </h1>
           <p className="text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
-            SpeechWeb is a dark-themed speech-to-text application with real-time recording, AI-powered transcription, and one-click export to PDF or presentation slides.
+            Dont keep the Agent waiting
           </p>
         </motion.div>
 
@@ -123,7 +123,7 @@ function LandingPage({ onSignIn }) {
       </main>
 
       <footer className="relative z-10 border-t border-white/5 py-6 text-center text-xs text-slate-600">
-        SpeechWeb — Record, transcribe, export.
+        Owner: Johnkennedy I. Alozie 
       </footer>
     </div>
   )
