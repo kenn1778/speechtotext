@@ -40,23 +40,16 @@ function LoginPage({ onAuth, onSignOut, user }) {
     resetForm()
   }
 
-  const handleGoogleSignIn = async () => {
-    try {
-      const { signInWithRedirect } = await import('aws-amplify/auth')
-      await signInWithRedirect({ provider: 'google' })
-    } catch (err) {
-      const redirectUri = window.location.origin + '/'
-      const state = crypto.randomUUID()
-      const url = 'https://' + OAUTH_DOMAIN + '/login'
-        + '?client_id=' + OAUTH_CLIENT_ID
-        + '&response_type=code'
-        + '&redirect_uri=' + encodeURIComponent(redirectUri)
-        + '&scope=' + encodeURIComponent('openid email profile')
-        + '&state=' + state
-        + '&identity_provider=Google'
-        + '&prompt=select_account'
-      window.location.assign(url)
-    }
+  const handleGoogleSignIn = () => {
+    const redirectUri = window.location.origin + '/'
+    const state = crypto.randomUUID()
+    const url = 'https://' + OAUTH_DOMAIN + '/login'
+      + '?client_id=' + OAUTH_CLIENT_ID
+      + '&response_type=code'
+      + '&redirect_uri=' + encodeURIComponent(redirectUri)
+      + '&scope=' + encodeURIComponent('openid email profile')
+      + '&state=' + state
+    window.location.assign(url)
   }
 
   const handleSubmit = async (e) => {
