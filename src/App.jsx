@@ -8,6 +8,7 @@ import SlidePreview from './components/SlidePreview.jsx'
 import HistoryPanel from './components/HistoryPanel.jsx'
 import LoginPage from './components/LoginPage.jsx'
 import LandingPage from './components/LandingPage.jsx'
+import ErrorBoundary from './components/ErrorBoundary.jsx'
 import { uploadAudioForTranscription } from './lib/speechClient.js'
 import { addHistoryItem } from './lib/historyStore.js'
 
@@ -19,8 +20,6 @@ function AppContent({ user, onSignOut }) {
   const [historyOpen, setHistoryOpen] = useState(false)
   const savedTranscriptRef = useRef('')
 
-  const preventDefault = useCallback(e => e.preventDefault(), [])
-
   const displayUser = user?.attributes?.email
     ? user
     : user
@@ -31,9 +30,6 @@ function AppContent({ user, onSignOut }) {
     document.title = 'SpeechWeb - Record, transcribe, export'
     const onVisibility = () => setHidden(document.hidden)
     document.addEventListener('visibilitychange', onVisibility)
-    document.addEventListener('copy', preventDefault)
-    document.addEventListener('cut', preventDefault)
-    document.addEventListener('contextmenu', preventDefault)
     const onKey = e => {
       if (e.key === 'PrintScreen' || (e.ctrlKey && e.key === 'p')) {
         e.preventDefault()
@@ -43,13 +39,10 @@ function AppContent({ user, onSignOut }) {
     document.addEventListener('keyup', onKey)
     return () => {
       document.removeEventListener('visibilitychange', onVisibility)
-      document.removeEventListener('copy', preventDefault)
-      document.removeEventListener('cut', preventDefault)
-      document.removeEventListener('contextmenu', preventDefault)
       document.removeEventListener('keydown', onKey)
       document.removeEventListener('keyup', onKey)
     }
-  }, [preventDefault])
+  }, [])
 
   useEffect(() => {
     if ((status === 'transcribed' || status === 'exported') && transcript.trim() && transcript !== savedTranscriptRef.current) {
@@ -66,7 +59,6 @@ function AppContent({ user, onSignOut }) {
       const timer = setTimeout(async () => {
         if (!transcript.trim()) {
           try {
-            setStatus('uploading')
             setStatus('transcribing')
             const result = await uploadAudioForTranscription(audioBlob)
             if (result.status === 'COMPLETED' && result.transcript) {
@@ -106,15 +98,6 @@ function AppContent({ user, onSignOut }) {
                   <path d="M3 17a10 10 0 0118 0" strokeWidth="1" />
                 </svg>
                 SpeechWeb • Voice to text • PDF & slides
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-xs text-blue-300">
-                <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 2a4 4 0 014 4v3a4 4 0 01-8 0V6a4 4 0 014-4z" />
-                  <path d="M18 11v2a6 6 0 01-12 0v-2" />
-                  <line x1="12" y1="19" x2="12" y2="22" />
-                  <line x1="9" y1="22" x2="15" y2="22" />
-                </svg>
-                Johnkennedy-V1-Flash-A30b-free
               </span>
             </div>
             <motion.button
@@ -258,7 +241,11 @@ function App() {
     return <LoginPage onAuth={handleAuth} />
   }
 
-  return <AppContent user={user} onSignOut={handleSignOut} />
+  return (
+    <ErrorBoundary>
+      <AppContent user={user} onSignOut={handleSignOut} />
+    </ErrorBoundary>
+  )
 }
 
 export default App

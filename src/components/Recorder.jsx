@@ -159,9 +159,8 @@ function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status })
   const handleTranscribe = async () => {
     if (!audioBlob) return
     setTranscribing(true)
-    setStatus('uploading')
+    setStatus('transcribing')
     try {
-      setStatus('transcribing')
       const result = await uploadAudioForTranscription(audioBlob)
       if (result.status === 'COMPLETED' && result.transcript) {
         setTranscript(result.transcript)
