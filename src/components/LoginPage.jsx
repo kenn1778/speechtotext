@@ -420,7 +420,9 @@ function LoginPage({ onAuth, onSignOut, user }) {
         </div>
 
         <p className="text-[10px] text-slate-600 text-center mt-6 px-4 leading-relaxed">
-          By continuing, you agree to SpeechWeb's Terms of Service and Privacy Policy.
+          By continuing, you agree to SpeechWeb's{' '}
+          <a href="/terms.html" className="text-blue-400 hover:text-blue-300 underline">Terms of Service</a> and{' '}
+          <a href="/privacy.html" className="text-blue-400 hover:text-blue-300 underline">Privacy Policy</a>.
         </p>
       </motion.div>
     </div>
