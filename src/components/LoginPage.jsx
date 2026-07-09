@@ -40,30 +40,17 @@ function LoginPage({ onAuth, onSignOut, user }) {
     resetForm()
   }
 
-  const handleGoogleSignIn = async () => {
-    try {
-      const { signInWithRedirect } = await import('aws-amplify/auth')
-      await signInWithRedirect({ provider: 'google' })
-    } catch (err) {
-      const msg = err?.message || err?.name || ''
-      if (msg.includes('not configured') || msg.includes('OAuth') || msg.includes('domain')) {
-        const redirectUri = window.location.origin + '/'
-        const state = crypto.randomUUID()
-        const url = 'https://' + OAUTH_DOMAIN + '/oauth2/authorize'
-          + '?identity_provider=Google'
-          + '&redirect_uri=' + encodeURIComponent(redirectUri)
-          + '&response_type=code'
-          + '&client_id=' + OAUTH_CLIENT_ID
-          + '&scope=' + encodeURIComponent('openid email profile')
-          + '&state=' + state
-        window.location.assign(url)
-      } else if (msg.includes('popup')) {
-        setError('Popup was blocked. Allow popups for this site and try again.')
-      } else {
-        setError(msg || 'Google sign-in failed.')
-      }
-      console.warn('Google sign-in error:', err)
-    }
+  const handleGoogleSignIn = () => {
+    const redirectUri = window.location.origin + '/'
+    const state = crypto.randomUUID()
+    const url = 'https://' + OAUTH_DOMAIN + '/oauth2/authorize'
+      + '?identity_provider=Google'
+      + '&redirect_uri=' + encodeURIComponent(redirectUri)
+      + '&response_type=code'
+      + '&client_id=' + OAUTH_CLIENT_ID
+      + '&scope=' + encodeURIComponent('openid email profile')
+      + '&state=' + state
+    window.location.assign(url)
   }
 
   const handleSubmit = async (e) => {

@@ -12,6 +12,20 @@ function GoogleIcon() {
 }
 
 function LandingPage({ onSignIn }) {
+  const handleGoogleSignIn = () => {
+    const OAUTH_DOMAIN = 'speechweb-auth-dev.auth.us-east-1.amazoncognito.com'
+    const OAUTH_CLIENT_ID = '6uafsoq8rlvuh3aj0opluh1l2t'
+    const redirectUri = window.location.origin + '/'
+    const state = crypto.randomUUID()
+    const url = 'https://' + OAUTH_DOMAIN + '/oauth2/authorize'
+      + '?identity_provider=Google'
+      + '&redirect_uri=' + encodeURIComponent(redirectUri)
+      + '&response_type=code'
+      + '&client_id=' + OAUTH_CLIENT_ID
+      + '&scope=' + encodeURIComponent('openid email profile')
+      + '&state=' + state
+    window.location.assign(url)
+  }
   return (
     <div className="min-h-screen bg-ink text-pearl relative overflow-hidden">
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.06),_transparent_30%)]" />
@@ -108,7 +122,7 @@ function LandingPage({ onSignIn }) {
           className="text-center"
         >
           <button
-            onClick={onSignIn}
+            onClick={handleGoogleSignIn}
             className="inline-flex items-center gap-3 px-6 py-3 rounded-xl border border-white/12 bg-white/5 hover:bg-white/10 text-slate-200 font-medium text-sm transition"
           >
             <GoogleIcon />
