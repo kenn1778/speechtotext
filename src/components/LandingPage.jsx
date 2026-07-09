@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import ParticleField from './ParticleField.jsx'
 
 function GoogleIcon() {
   return (
@@ -28,8 +29,7 @@ function LandingPage({ onSignIn }) {
   }
   return (
     <div className="min-h-screen bg-ink text-pearl relative overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.06),_transparent_30%)]" />
-      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_bottom_right,_rgba(255,255,255,0.04),_transparent_28%)]" />
+      <ParticleField variant="landing" />
 
       <nav className="relative z-10 flex items-center justify-between px-6 py-5 max-w-6xl mx-auto">
         <div className="flex items-center gap-2 text-white font-semibold text-lg">

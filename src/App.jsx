@@ -9,6 +9,7 @@ import HistoryPanel from './components/HistoryPanel.jsx'
 import LoginPage from './components/LoginPage.jsx'
 import LandingPage from './components/LandingPage.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
+import ParticleField from './components/ParticleField.jsx'
 import { uploadAudioForTranscription } from './lib/speechClient.js'
 import { addHistoryItem } from './lib/historyStore.js'
 
@@ -79,8 +80,7 @@ function AppContent({ user, onSignOut }) {
 
   return (
     <div className="min-h-screen bg-ink text-pearl">
-      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_32%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,_rgba(255,255,255,0.05),_transparent_30%)]" />
+      <ParticleField variant="app" />
       {hidden && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/95 backdrop-blur-xl">
           <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Content hidden</p>
