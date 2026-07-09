@@ -2,15 +2,15 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import { getHistory, groupByDate, clearHistory } from '../lib/historyStore.js'
 
-function HistoryPanel({ open, onClose, onLoadTranscript, user, onSignOut }) {
+function HistoryPanel({ open, onClose, onLoadTranscript, userId, user, onSignOut }) {
   const [history, setHistory] = useState([])
   const panelRef = useRef(null)
 
   useEffect(() => {
     if (open) {
-      setHistory(getHistory())
+      setHistory(getHistory(userId))
     }
-  }, [open])
+  }, [open, userId])
 
   useEffect(() => {
     if (!open) return
@@ -24,7 +24,7 @@ function HistoryPanel({ open, onClose, onLoadTranscript, user, onSignOut }) {
   }, [open, onClose])
 
   const handleClear = () => {
-    clearHistory()
+    clearHistory(userId)
     setHistory([])
   }
 

@@ -10,6 +10,7 @@ import LoginPage from './components/LoginPage.jsx'
 import LandingPage from './components/LandingPage.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import ParticleField from './components/ParticleField.jsx'
+import TextToSpeech from './components/TextToSpeech.jsx'
 import { uploadAudioForTranscription } from './lib/speechClient.js'
 import { addHistoryItem } from './lib/historyStore.js'
 
@@ -20,6 +21,8 @@ function AppContent({ user, onSignOut }) {
   const [hidden, setHidden] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const savedTranscriptRef = useRef('')
+
+  const userId = user?.userId || user?.username || 'anon'
 
   const displayUser = user?.attributes?.email
     ? user
@@ -48,12 +51,12 @@ function AppContent({ user, onSignOut }) {
   useEffect(() => {
     if ((status === 'transcribed' || status === 'exported') && transcript.trim() && transcript !== savedTranscriptRef.current) {
       savedTranscriptRef.current = transcript
-      addHistoryItem({
+      addHistoryItem(userId, {
         type: status === 'exported' ? 'pdf' : 'recording',
         transcript,
       })
     }
-  }, [status, transcript])
+  }, [status, transcript, userId])
 
   useEffect(() => {
     if (status === 'recorded' && audioBlob && !transcript.trim()) {
@@ -100,15 +103,16 @@ function AppContent({ user, onSignOut }) {
                 SpeechWeb • Voice to text • PDF & slides
               </span>
             </div>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setHistoryOpen(true)}
-              className="p-1.5 sm:p-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition min-w-[36px] min-h-[36px] flex items-center justify-center"
-            >
-              <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="4" y1="6" x2="20" y2="6" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="18" x2="20" y2="18" />
-              </svg>
-            </motion.button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setHistoryOpen(true)}
+                className="p-1.5 sm:p-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition min-w-[36px] min-h-[36px] flex items-center justify-center"
+              >
+                <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="4" y1="6" x2="20" y2="6" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="18" x2="20" y2="18" />
+                </svg>
+              </button>
+            </div>
           </div>
           <h1 className="max-w-3xl text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold leading-tight text-white">
             Record speech, turn it into text, and export beautiful documents.
@@ -144,6 +148,7 @@ function AppContent({ user, onSignOut }) {
               className="rounded-2xl sm:rounded-3xl border border-white/10 bg-black/40 p-4 sm:p-5 lg:p-6 shadow-glow backdrop-blur-xl overflow-hidden"
             >
               <TranscriptEditor transcript={transcript} setTranscript={setTranscript} />
+              <TextToSpeech text={transcript} />
               <ExportControls transcript={transcript} audioBlob={audioBlob} setStatus={setStatus} setTranscript={setTranscript} />
               <div className="mt-6">
                 <SlidePreview transcript={transcript} />
@@ -157,6 +162,7 @@ function AppContent({ user, onSignOut }) {
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}
         onLoadTranscript={(t) => { setTranscript(t); savedTranscriptRef.current = t }}
+        userId={userId}
         user={displayUser}
         onSignOut={onSignOut}
       />
@@ -169,7 +175,7 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [showLogin, setShowLogin] = useState(false)
 
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
     try {
       const { getCurrentUser, fetchUserAttributes } = await import('aws-amplify/auth')
       const currentUser = await getCurrentUser()
@@ -181,35 +187,59 @@ function App() {
       setUser(null)
       return false
     }
-  }
+  }, [])
 
   useEffect(() => {
-    const isOAuthRedirect = new URLSearchParams(window.location.search).has('code')
-      || window.location.hash.includes('id_token')
+    let cancelled = false
+    let safetyTimer
 
     const unsubscribe = Hub.listen('auth', ({ payload }) => {
-      if (payload.event === 'signedIn') {
-        fetchUser().finally(() => setLoading(false))
+      if (payload.event === 'signedIn' && !cancelled) {
+        fetchUser().finally(() => { if (!cancelled) setLoading(false) })
       }
-      if (payload.event === 'signedOut') {
+      if (payload.event === 'signedOut' && !cancelled) {
         setUser(null)
         setLoading(false)
       }
     })
 
     ;(async () => {
-      if (isOAuthRedirect) {
-        await new Promise(r => setTimeout(r, 2000))
+      const hasOAuthCode = new URLSearchParams(window.location.search).has('code')
+        || window.location.hash.includes('id_token')
+
+      if (hasOAuthCode) {
+        try {
+          const { signInWithRedirect } = await import('aws-amplify/auth')
+          await signInWithRedirect()
+        } catch {}
       }
-      await fetchUser()
-      setLoading(false)
+
+      await new Promise(r => { safetyTimer = setTimeout(r, 8000) })
+      if (!cancelled) {
+        const ok = await fetchUser()
+        if (!ok && hasOAuthCode) {
+          await new Promise(r => setTimeout(r, 5000))
+          await fetchUser()
+        }
+        if (!cancelled) {
+          if (hasOAuthCode && window.history.replaceState) {
+            window.history.replaceState({}, document.title, window.location.pathname)
+          }
+          setLoading(false)
+        }
+      }
     })()
 
-    return () => unsubscribe()
-  }, [])
+    return () => {
+      cancelled = true
+      unsubscribe()
+      clearTimeout(safetyTimer)
+    }
+  }, [fetchUser])
 
   const handleAuth = (authedUser) => {
     setUser(authedUser)
+    setShowLogin(false)
   }
 
   const handleSignOut = async () => {
@@ -218,6 +248,7 @@ function App() {
       await signOut()
     } finally {
       setUser(null)
+      setShowLogin(false)
     }
   }
 

@@ -1,26 +1,29 @@
-const STORAGE_KEY = 'speechweb_history'
+function getKey(userId) {
+  return 'speechweb_history_' + (userId || 'anon')
+}
 
-export function getHistory() {
+export function getHistory(userId) {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+    return JSON.parse(localStorage.getItem(getKey(userId)) || '[]')
   } catch {
     return []
   }
 }
 
-export function addHistoryItem(item) {
-  const history = getHistory()
+export function addHistoryItem(userId, item) {
+  const key = getKey(userId)
+  const history = JSON.parse(localStorage.getItem(key) || '[]')
   history.unshift({
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
     timestamp: new Date().toISOString(),
     ...item
   })
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(history))
+  localStorage.setItem(key, JSON.stringify(history))
   return history
 }
 
-export function clearHistory() {
-  localStorage.removeItem(STORAGE_KEY)
+export function clearHistory(userId) {
+  localStorage.removeItem(getKey(userId))
 }
 
 export function groupByDate(items) {
