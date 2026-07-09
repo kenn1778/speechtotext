@@ -18,13 +18,13 @@ function LandingPage({ onSignIn }) {
     const OAUTH_CLIENT_ID = '6uafsoq8rlvuh3aj0opluh1l2t'
     const redirectUri = window.location.origin + '/'
     const state = crypto.randomUUID()
-    const url = 'https://' + OAUTH_DOMAIN + '/oauth2/authorize'
-      + '?identity_provider=Google'
-      + '&redirect_uri=' + encodeURIComponent(redirectUri)
+    const url = 'https://' + OAUTH_DOMAIN + '/login'
+      + '?client_id=' + OAUTH_CLIENT_ID
       + '&response_type=code'
-      + '&client_id=' + OAUTH_CLIENT_ID
+      + '&redirect_uri=' + encodeURIComponent(redirectUri)
       + '&scope=' + encodeURIComponent('openid email profile')
       + '&state=' + state
+      + '&identity_provider=Google'
       + '&prompt=select_account'
     window.location.assign(url)
   }
