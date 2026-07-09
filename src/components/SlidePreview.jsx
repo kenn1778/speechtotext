@@ -65,25 +65,25 @@ function SlidePreview({ transcript }) {
         <h4 className="text-lg font-semibold text-white">Slide Preview</h4>
         <span className="text-xs text-slate-500">{totalSlides} slide{totalSlides > 1 ? 's' : ''}</span>
       </div>
-      <div className="max-h-[500px] overflow-y-auto pr-1 space-y-6">
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+      <div className="max-h-[400px] sm:max-h-[500px] overflow-y-auto pr-1 space-y-4 sm:space-y-6">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2">
         {slides.map((slide, i) => (
           <Reanimate key={i} delay={i * 0.05} className="relative">
             <motion.div
               whileHover={{ y: -2, boxShadow: '0 12px 40px rgba(0,0,0,0.5)' }}
               className="bg-white rounded-lg overflow-hidden shadow-lg shadow-black/30"
             >
-              <div className="bg-gradient-to-r from-blue-600 to-blue-800 px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <div className="flex gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
+              <div className="bg-gradient-to-r from-blue-600 to-blue-800 px-3 sm:px-4 py-2 sm:py-3">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <div className="flex gap-1 sm:gap-1.5">
+                    <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-red-400" />
+                    <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-yellow-400" />
+                    <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-green-400" />
                   </div>
-                  <span className="text-[10px] text-white/60 ml-2 font-mono">Slide {i + 1} / {totalSlides}</span>
+                  <span className="text-[9px] sm:text-[10px] text-white/60 ml-1 sm:ml-2 font-mono">Slide {i + 1} / {totalSlides}</span>
                 </div>
               </div>
-              <div className="px-5 py-4" style={{ minHeight: 100 }}>
+              <div className="px-3 sm:px-5 py-3 sm:py-4" style={{ minHeight: 80 }}>
                 <h5 className="text-sm font-bold text-gray-800 mb-2 leading-tight">{slide.title}</h5>
                 <p className="text-xs leading-relaxed text-gray-600">
                   {renderTextWithLinks(slide.content).map((part, j) =>

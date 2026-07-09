@@ -128,7 +128,7 @@ function ExportControls({ transcript, audioBlob, setStatus, setTranscript }) {
   }
 
   return (
-    <div className="mt-8 rounded-3xl border border-white/10 bg-neutral-950/80 p-6 shadow-glow">
+    <div className="mt-6 sm:mt-8 rounded-2xl sm:rounded-3xl border border-white/10 bg-neutral-950/80 p-4 sm:p-5 lg:p-6 shadow-glow">
       <div className="flex flex-col gap-5">
         <div>
           <h4 className="text-lg font-semibold text-white">Export</h4>

@@ -180,9 +180,9 @@ function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status })
             initial={{ opacity: 0, y: -20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.9 }}
-            className="absolute -top-4 left-1/2 -translate-x-1/2 z-20"
+            className="absolute -top-4 left-1/2 -translate-x-1/2 z-20 w-[calc(100%-2rem)] sm:w-auto"
           >
-            <div className="flex items-center gap-3 bg-gradient-to-r from-blue-900/90 to-indigo-900/90 backdrop-blur-xl border border-blue-500/30 rounded-xl px-5 py-3 shadow-lg shadow-blue-500/10 whitespace-nowrap">
+            <div className="flex items-center gap-2 sm:gap-3 bg-gradient-to-r from-blue-900/90 to-indigo-900/90 backdrop-blur-xl border border-blue-500/30 rounded-xl px-4 sm:px-5 py-2.5 sm:py-3 shadow-lg shadow-blue-500/10">
               <Spinner />
               <div className="text-left">
                 <p className="text-sm font-medium text-blue-200">Recording stopped</p>
@@ -198,59 +198,56 @@ function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status })
         )}
       </AnimatePresence>
 
-      <div className="rounded-3xl border border-white/10 bg-neutral-950/80 p-6 shadow-xl shadow-black/40">
-        <div className="flex items-center justify-between gap-4">
+      <div className="rounded-2xl sm:rounded-3xl border border-white/10 bg-neutral-950/80 p-4 sm:p-5 lg:p-6 shadow-xl shadow-black/40">
+        <div className="flex items-center justify-between gap-3 sm:gap-4">
           <div>
-            <p className="text-sm uppercase tracking-[0.24em] text-slate-400">Recorder</p>
-            <h2 className="mt-2 text-2xl font-semibold text-white">Live capture</h2>
+            <p className="text-[10px] sm:text-sm uppercase tracking-[0.2em] sm:tracking-[0.24em] text-slate-400">Recorder</p>
+            <h2 className="mt-1 sm:mt-2 text-xl sm:text-2xl font-semibold text-white">Live capture</h2>
           </div>
-          <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">
+          <div className="rounded-full border border-white/10 bg-white/5 px-3 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-sm text-slate-300 whitespace-nowrap">
             {status === 'recording' ? 'Recording' : status === 'processing' ? 'Processing' : status === 'uploading' ? 'Uploading' : status === 'transcribing' ? 'Transcribing...' : status === 'transcribed' ? 'Done' : status === 'no-speech-api' ? 'Speech API not available' : 'Idle'}
           </div>
         </div>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <div className="mt-4 sm:mt-6 grid gap-3 sm:gap-4 grid-cols-2">
           <motion.button
-            whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={startRecording}
-            className="w-full sm:w-auto rounded-2xl bg-white/10 px-5 py-4 sm:py-3 text-left text-white transition hover:bg-white/15"
+            className="w-full rounded-2xl bg-white/10 px-4 sm:px-5 py-3.5 sm:py-3 text-center text-white text-sm transition hover:bg-white/15 min-h-[48px]"
           >
             Start Recording
           </motion.button>
           <motion.button
-            whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={stopRecording}
             disabled={!mediaRecorder || status !== 'recording'}
-            className="w-full sm:w-auto rounded-2xl bg-slate-800 px-5 py-4 sm:py-3 text-left text-slate-200 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+            className="w-full rounded-2xl bg-slate-800 px-4 sm:px-5 py-3.5 sm:py-3 text-center text-slate-200 text-sm transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40 min-h-[48px]"
           >
             Stop Recording
           </motion.button>
         </div>
-        <div className="mt-6">
+        <div className="mt-4 sm:mt-6">
           <RecordingVisualizer stream={streamRef.current} active={status === 'recording'} />
         </div>
-        <p className="mt-4 text-sm leading-6 text-slate-400">
+        <p className="mt-3 sm:mt-4 text-xs sm:text-sm leading-5 sm:leading-6 text-slate-400">
           Tap the button to record audio. After stopping, the app simulates transcription and prepares export options.
         </p>
       </div>
 
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-glow">
-        <div className="flex items-center justify-between gap-4">
+      <div className="rounded-2xl sm:rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-5 lg:p-6 shadow-glow">
+        <div className="flex items-center justify-between gap-3 sm:gap-4">
           <div>
-            <p className="text-sm uppercase tracking-[0.24em] text-slate-400">Output Preview</p>
-            <p className="text-sm text-slate-300">Audio file ready: {audioBlob ? 'yes' : 'no'}</p>
+            <p className="text-[10px] sm:text-sm uppercase tracking-[0.2em] sm:tracking-[0.24em] text-slate-400">Output Preview</p>
+            <p className="text-xs sm:text-sm text-slate-300">Audio file ready: {audioBlob ? 'yes' : 'no'}</p>
           </div>
-          <div className="h-12 w-12 rounded-full border border-white/10 bg-black/40" />
+          <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full border border-white/10 bg-black/40 flex-shrink-0" />
         </div>
         {audioBlob && (
           <motion.button
-            whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleTranscribe}
             disabled={transcribing}
-            className="mt-4 w-full rounded-2xl bg-indigo-700 px-5 py-3 text-sm text-white transition hover:bg-indigo-600 disabled:cursor-not-allowed disabled:opacity-40"
+            className="mt-3 sm:mt-4 w-full rounded-2xl bg-indigo-700 px-5 py-3 text-sm text-white transition hover:bg-indigo-600 disabled:cursor-not-allowed disabled:opacity-40 min-h-[44px]"
           >
             {transcribing ? 'Transcribing...' : 'Transcribe via Backend'}
           </motion.button>

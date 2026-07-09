@@ -86,12 +86,12 @@ function AppContent({ user, onSignOut }) {
           <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Content hidden</p>
         </div>
       )}
-      <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col px-6 py-10 sm:px-8">
-        <header className="relative z-10 mb-10 flex flex-col gap-4">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1 text-sm text-slate-300">
-                <svg viewBox="0 0 24 24" className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+        <header className="relative z-10 mb-6 sm:mb-8 lg:mb-10 flex flex-col gap-3 sm:gap-4">
+          <div className="flex items-center justify-between gap-2 sm:gap-3 flex-wrap">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-white/10 bg-white/5 px-3 sm:px-4 py-1 text-[11px] sm:text-xs lg:text-sm text-slate-300">
+                <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400" fill="none" stroke="currentColor" strokeWidth="1.5">
                   <circle cx="12" cy="8" r="3" />
                   <rect x="8" y="11" width="8" height="10" rx="2" />
                   <path d="M5 14a7 7 0 0114 0" strokeWidth="1" />
@@ -101,30 +101,29 @@ function AppContent({ user, onSignOut }) {
               </span>
             </div>
             <motion.button
-              whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setHistoryOpen(true)}
-              className="p-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition"
+              className="p-1.5 sm:p-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition min-w-[36px] min-h-[36px] flex items-center justify-center"
             >
-              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="4" y1="6" x2="20" y2="6" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="18" x2="20" y2="18" />
               </svg>
             </motion.button>
           </div>
-          <h1 className="max-w-3xl text-3xl sm:text-4xl md:text-5xl font-semibold leading-tight text-white">
+          <h1 className="max-w-3xl text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold leading-tight text-white">
             Record speech, turn it into text, and export beautiful documents.
           </h1>
-          <p className="max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
+          <p className="max-w-2xl text-sm sm:text-base lg:text-lg leading-6 sm:leading-7 text-slate-300">
             A dark-themed React experience with sleek motion, soft glows, dust textures, and export-ready output. Start recording and preview your app workflow instantly.
           </p>
         </header>
 
-        <main className="relative z-10 grid gap-8 md:grid-cols-2 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.9fr)] items-start">
+        <main className="relative z-10 grid gap-4 sm:gap-6 lg:gap-8 md:grid-cols-2 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.9fr)] items-start">
           <motion.section
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-glow backdrop-blur-xl overflow-visible"
+            className="rounded-2xl sm:rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-5 lg:p-6 shadow-glow backdrop-blur-xl overflow-visible"
           >
             <Recorder
               audioBlob={audioBlob}
@@ -142,7 +141,7 @@ function AppContent({ user, onSignOut }) {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -24 }}
               transition={{ duration: 0.5 }}
-              className="rounded-3xl border border-white/10 bg-black/40 p-6 shadow-glow backdrop-blur-xl overflow-hidden"
+              className="rounded-2xl sm:rounded-3xl border border-white/10 bg-black/40 p-4 sm:p-5 lg:p-6 shadow-glow backdrop-blur-xl overflow-hidden"
             >
               <TranscriptEditor transcript={transcript} setTranscript={setTranscript} />
               <ExportControls transcript={transcript} audioBlob={audioBlob} setStatus={setStatus} setTranscript={setTranscript} />

@@ -9,14 +9,17 @@
 
 html {
   background: #09090d;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   min-height: 100vh;
+  min-height: 100dvh;
   background: radial-gradient(circle at top, rgba(255,255,255,0.06), transparent 30%),
     radial-gradient(circle at bottom right, rgba(255,255,255,0.04), transparent 28%),
     #09090d;
   color: #f8fafc;
+  overscroll-behavior: none;
 }
 
 body::before {
@@ -38,20 +41,13 @@ body::after {
   opacity: 0.04;
 }
 
-/* Mobile-specific adjustments */
-@media (max-width: 640px) {
-  body::before { opacity: 0.04; background-size: 24px 24px }
-  body::after { opacity: 0.02 }
-  html { font-size: 14px }
-  button { touch-action: manipulation }
-}
-
 * {
   box-sizing: border-box;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 button,
@@ -72,4 +68,16 @@ textarea {
 
 @media print {
   body { display: none !important; }
+}
+
+@media (max-width: 640px) {
+  body::before { opacity: 0.04; background-size: 24px 24px }
+  body::after { opacity: 0.02 }
+  html { font-size: 14px }
+  button { touch-action: manipulation }
+  input, select, textarea { font-size: 16px !important; }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  html { font-size: 15px }
 }

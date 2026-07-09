@@ -122,7 +122,7 @@ function LoginPage({ onAuth, onSignOut, user }) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 relative">
+    <div className="min-h-screen flex items-center justify-center px-3 sm:px-4 py-8 sm:py-12 relative">
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.06),_transparent_30%)]" />
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_bottom_right,_rgba(255,255,255,0.04),_transparent_28%)]" />
 
@@ -130,37 +130,37 @@ function LoginPage({ onAuth, onSignOut, user }) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="relative w-full max-w-md"
+        className="relative w-full max-w-[420px]"
       >
-        <div className="rounded-2xl border border-white/10 bg-neutral-900/80 backdrop-blur-xl p-8 sm:p-10 shadow-2xl">
-          <div className="flex flex-col items-center mb-8">
-            <div className="w-12 h-12 rounded-xl bg-blue-500/15 flex items-center justify-center mb-4">
-              <svg viewBox="0 0 24 24" className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <div className="rounded-2xl border border-white/10 bg-neutral-900/80 backdrop-blur-xl p-5 sm:p-8 lg:p-10 shadow-2xl">
+          <div className="flex flex-col items-center mb-6 sm:mb-8">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-500/15 flex items-center justify-center mb-3 sm:mb-4">
+              <svg viewBox="0 0 24 24" className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <circle cx="12" cy="8" r="3" />
                 <rect x="8" y="11" width="8" height="10" rx="2" />
                 <path d="M5 14a7 7 0 0114 0" strokeWidth="1" />
                 <path d="M3 17a10 10 0 0118 0" strokeWidth="1" />
               </svg>
             </div>
-            <h1 className="text-2xl font-semibold text-white">Welcome to Agent Kennedy</h1>
-            <p className="text-sm text-slate-400 mt-1">Record, transcribe, export</p>
+            <h1 className="text-xl sm:text-2xl font-semibold text-white text-center">Welcome to Agent Kennedy</h1>
+            <p className="text-xs sm:text-sm text-slate-400 mt-1">Record, transcribe, export</p>
           </div>
 
           {mode === 'login' && (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Email</label>
+                <label className="block text-[11px] sm:text-xs font-medium text-slate-400 mb-1 sm:mb-1.5">Email</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
                   required
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-black/40 text-white placeholder-slate-500 text-sm outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition"
+                  className="w-full px-3 sm:px-3.5 py-2.5 sm:py-2.5 rounded-xl border border-white/10 bg-black/40 text-white placeholder-slate-500 text-sm outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Password</label>
+                <label className="block text-[11px] sm:text-xs font-medium text-slate-400 mb-1 sm:mb-1.5">Password</label>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
@@ -168,12 +168,12 @@ function LoginPage({ onAuth, onSignOut, user }) {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter your password"
                     required
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-black/40 text-white placeholder-slate-500 text-sm outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition pr-10"
+                    className="w-full px-3 sm:px-3.5 py-2.5 sm:py-2.5 rounded-xl border border-white/10 bg-black/40 text-white placeholder-slate-500 text-sm outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition pr-10"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-1"
                   >
                     {showPassword ? (
                       <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
@@ -197,12 +197,12 @@ function LoginPage({ onAuth, onSignOut, user }) {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-2.5 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
               >
                 {submitting ? 'Signing in...' : 'Log in'}
               </button>
 
-              <div className="flex items-center gap-3 py-2">
+              <div className="flex items-center gap-3 py-1 sm:py-2">
                 <div className="flex-1 h-px bg-white/10" />
                 <span className="text-xs text-slate-500">or</span>
                 <div className="flex-1 h-px bg-white/10" />
@@ -211,14 +211,14 @@ function LoginPage({ onAuth, onSignOut, user }) {
               <button
                 type="button"
                 onClick={handleGoogleSignIn}
-                className="w-full flex items-center justify-center gap-2.5 py-2.5 rounded-xl border border-white/12 bg-white/5 hover:bg-white/10 text-slate-300 font-medium text-sm transition"
+                className="w-full flex items-center justify-center gap-2.5 py-2.5 sm:py-2.5 rounded-xl border border-white/12 bg-white/5 hover:bg-white/10 text-slate-300 font-medium text-sm transition min-h-[44px]"
               >
                 <GoogleIcon />
                 Continue with Google
               </button>
 
-              <div className="text-center pt-2">
-                <button type="button" onClick={() => switchMode('forgot')} className="text-xs text-blue-400 hover:text-blue-300 transition">
+              <div className="text-center pt-1 sm:pt-2">
+                <button type="button" onClick={() => switchMode('forgot')} className="text-xs text-blue-400 hover:text-blue-300 transition py-1">
                   Forgot your password?
                 </button>
               </div>
@@ -226,20 +226,20 @@ function LoginPage({ onAuth, onSignOut, user }) {
           )}
 
           {mode === 'signup' && (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Email</label>
+                <label className="block text-[11px] sm:text-xs font-medium text-slate-400 mb-1 sm:mb-1.5">Email</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
                   required
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-black/40 text-white placeholder-slate-500 text-sm outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition"
+                  className="w-full px-3 sm:px-3.5 py-2.5 sm:py-2.5 rounded-xl border border-white/10 bg-black/40 text-white placeholder-slate-500 text-sm outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Password</label>
+                <label className="block text-[11px] sm:text-xs font-medium text-slate-400 mb-1 sm:mb-1.5">Password</label>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
@@ -248,12 +248,12 @@ function LoginPage({ onAuth, onSignOut, user }) {
                     placeholder="Create a password"
                     required
                     minLength={8}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-black/40 text-white placeholder-slate-500 text-sm outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition pr-10"
+                    className="w-full px-3 sm:px-3.5 py-2.5 sm:py-2.5 rounded-xl border border-white/10 bg-black/40 text-white placeholder-slate-500 text-sm outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition pr-10"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-1"
                   >
                     {showPassword ? (
                       <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
@@ -278,12 +278,12 @@ function LoginPage({ onAuth, onSignOut, user }) {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-2.5 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
               >
                 {submitting ? 'Creating account...' : 'Continue'}
               </button>
 
-              <div className="flex items-center gap-3 py-2">
+              <div className="flex items-center gap-3 py-1 sm:py-2">
                 <div className="flex-1 h-px bg-white/10" />
                 <span className="text-xs text-slate-500">or</span>
                 <div className="flex-1 h-px bg-white/10" />
@@ -292,7 +292,7 @@ function LoginPage({ onAuth, onSignOut, user }) {
               <button
                 type="button"
                 onClick={handleGoogleSignIn}
-                className="w-full flex items-center justify-center gap-2.5 py-2.5 rounded-xl border border-white/12 bg-white/5 hover:bg-white/10 text-slate-300 font-medium text-sm transition"
+                className="w-full flex items-center justify-center gap-2.5 py-2.5 sm:py-2.5 rounded-xl border border-white/12 bg-white/5 hover:bg-white/10 text-slate-300 font-medium text-sm transition min-h-[44px]"
               >
                 <GoogleIcon />
                 Continue with Google
@@ -301,19 +301,19 @@ function LoginPage({ onAuth, onSignOut, user }) {
           )}
 
           {mode === 'confirm' && (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
               <p className="text-sm text-slate-400 text-center">
                 Enter the confirmation code sent to <span className="text-white font-medium">{email}</span>
               </p>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Confirmation code</label>
+                <label className="block text-[11px] sm:text-xs font-medium text-slate-400 mb-1 sm:mb-1.5">Confirmation code</label>
                 <input
                   type="text"
                   value={confirmCode}
                   onChange={(e) => setConfirmCode(e.target.value)}
                   placeholder="Enter code"
                   required
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-black/40 text-white placeholder-slate-500 text-sm outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition"
+                  className="w-full px-3 sm:px-3.5 py-2.5 sm:py-2.5 rounded-xl border border-white/10 bg-black/40 text-white placeholder-slate-500 text-sm outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition"
                 />
               </div>
 
@@ -324,13 +324,13 @@ function LoginPage({ onAuth, onSignOut, user }) {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-2.5 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
               >
                 {submitting ? 'Verifying...' : 'Confirm'}
               </button>
 
               <div className="text-center">
-                <button type="button" onClick={() => { setMode('login'); resetForm() }} className="text-xs text-blue-400 hover:text-blue-300 transition">
+                <button type="button" onClick={() => { setMode('login'); resetForm() }} className="text-xs text-blue-400 hover:text-blue-300 transition py-1">
                   Back to login
                 </button>
               </div>
@@ -338,19 +338,19 @@ function LoginPage({ onAuth, onSignOut, user }) {
           )}
 
           {mode === 'forgot' && (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
               <p className="text-sm text-slate-400 text-center">
                 Enter your email and we'll send you a reset code.
               </p>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Email</label>
+                <label className="block text-[11px] sm:text-xs font-medium text-slate-400 mb-1 sm:mb-1.5">Email</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
                   required
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-black/40 text-white placeholder-slate-500 text-sm outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition"
+                  className="w-full px-3 sm:px-3.5 py-2.5 sm:py-2.5 rounded-xl border border-white/10 bg-black/40 text-white placeholder-slate-500 text-sm outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition"
                 />
               </div>
 
@@ -361,13 +361,13 @@ function LoginPage({ onAuth, onSignOut, user }) {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-2.5 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
               >
                 {submitting ? 'Sending...' : 'Send reset code'}
               </button>
 
               <div className="text-center">
-                <button type="button" onClick={() => switchMode('login')} className="text-xs text-blue-400 hover:text-blue-300 transition">
+                <button type="button" onClick={() => switchMode('login')} className="text-xs text-blue-400 hover:text-blue-300 transition py-1">
                   Back to login
                 </button>
               </div>
@@ -375,23 +375,23 @@ function LoginPage({ onAuth, onSignOut, user }) {
           )}
 
           {mode === 'forgotConfirm' && (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
               <p className="text-sm text-slate-400 text-center">
                 Enter the code sent to <span className="text-white font-medium">{email}</span> and your new password.
               </p>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Confirmation code</label>
+                <label className="block text-[11px] sm:text-xs font-medium text-slate-400 mb-1 sm:mb-1.5">Confirmation code</label>
                 <input
                   type="text"
                   value={confirmCode}
                   onChange={(e) => setConfirmCode(e.target.value)}
                   placeholder="Enter code"
                   required
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-black/40 text-white placeholder-slate-500 text-sm outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition"
+                  className="w-full px-3 sm:px-3.5 py-2.5 sm:py-2.5 rounded-xl border border-white/10 bg-black/40 text-white placeholder-slate-500 text-sm outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">New password</label>
+                <label className="block text-[11px] sm:text-xs font-medium text-slate-400 mb-1 sm:mb-1.5">New password</label>
                 <input
                   type="password"
                   value={newPassword}
@@ -399,7 +399,7 @@ function LoginPage({ onAuth, onSignOut, user }) {
                   placeholder="Enter new password"
                   required
                   minLength={8}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-white/10 bg-black/40 text-white placeholder-slate-500 text-sm outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition"
+                  className="w-full px-3 sm:px-3.5 py-2.5 sm:py-2.5 rounded-xl border border-white/10 bg-black/40 text-white placeholder-slate-500 text-sm outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition"
                 />
               </div>
 
@@ -410,13 +410,13 @@ function LoginPage({ onAuth, onSignOut, user }) {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-2.5 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
               >
                 {submitting ? 'Resetting...' : 'Reset password'}
               </button>
 
               <div className="text-center">
-                <button type="button" onClick={() => switchMode('login')} className="text-xs text-blue-400 hover:text-blue-300 transition">
+                <button type="button" onClick={() => switchMode('login')} className="text-xs text-blue-400 hover:text-blue-300 transition py-1">
                   Back to login
                 </button>
               </div>
@@ -424,7 +424,7 @@ function LoginPage({ onAuth, onSignOut, user }) {
           )}
 
           {mode !== 'confirm' && mode !== 'forgot' && mode !== 'forgotConfirm' && (
-            <div className="mt-6 pt-4 border-t border-white/6 text-center">
+            <div className="mt-5 sm:mt-6 pt-4 sm:pt-4 border-t border-white/6 text-center">
               <p className="text-xs text-slate-500">
                 {mode === 'login' ? "Don't have an account? " : "Already have an account? "}
                 <button
@@ -439,7 +439,7 @@ function LoginPage({ onAuth, onSignOut, user }) {
           )}
         </div>
 
-        <p className="text-[10px] text-slate-600 text-center mt-6 px-4 leading-relaxed">
+        <p className="text-[10px] text-slate-600 text-center mt-5 sm:mt-6 px-2 sm:px-4 leading-relaxed">
           By continuing, you agree to SpeechWeb's{' '}
           <a href="/terms.html" className="text-blue-400 hover:text-blue-300 underline">Terms of Service</a> and{' '}
           <a href="/privacy.html" className="text-blue-400 hover:text-blue-300 underline">Privacy Policy</a>.
