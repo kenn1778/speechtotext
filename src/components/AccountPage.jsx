@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
-import { getProfile, getHistory, clearHistory as apiClearHistory } from '../lib/apiClient.js'
+import { getProfile, saveProfile, getHistory, clearHistory as apiClearHistory } from '../lib/apiClient.js'
 import ParticleField from './ParticleField.jsx'
 import ThemeOverlay from './ThemeOverlay.jsx'
 
@@ -23,7 +23,15 @@ function AccountPage({ user, onSignOut, onGoToDashboard }) {
           getHistory(userId),
         ])
         if (cancelled) return
-        if (profileData.exists) setProfile(profileData)
+        if (profileData.exists) {
+          setProfile(profileData)
+        } else {
+          const created = await saveProfile(userId, {
+            name: displayName,
+            email: email,
+          })
+          if (!cancelled) setProfile(created)
+        }
         setHistory(historyData)
       } catch {
         if (cancelled) return
@@ -32,7 +40,7 @@ function AccountPage({ user, onSignOut, onGoToDashboard }) {
     }
     load()
     return () => { cancelled = true }
-  }, [userId])
+  }, [userId, displayName, email])
 
   const recordingCount = history.filter(h => h.type === 'recording').length
   const exportCount = history.filter(h => h.type === 'pdf').length
