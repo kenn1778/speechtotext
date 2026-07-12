@@ -195,8 +195,7 @@ function UserDashboard({ user, onSignOut, onGoToAccount }) {
             } else {
               setStatus('error')
             }
-          } catch (error) {
-            console.error('Auto-transcription failed:', error)
+          } catch {
             setStatus('error')
           }
         }

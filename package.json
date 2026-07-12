@@ -15,6 +15,7 @@
     "@aws-amplify/ui-react": "^6.15.4",
     "aws-amplify": "^6.18.0",
     "concurrently": "^10.0.3",
+    "dompurify": "^3.4.12",
     "framer-motion": "^11.18.2",
     "jspdf": "^4.2.1",
     "lottie-react": "^2.4.0",
@@ -22,6 +23,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@types/dompurify": "^3.0.5",
     "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.5.2",
     "playwright": "^1.61.1",

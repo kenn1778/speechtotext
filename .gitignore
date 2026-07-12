@@ -28,5 +28,7 @@ amplifytools.xcconfig
 **.sample
 #amplify-do-not-edit-end
 server/uploads/
+server/data/db.json
+server/data/*.tmp
 acme.sh/
 .vscode/

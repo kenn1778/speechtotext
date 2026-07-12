@@ -119,10 +119,9 @@ function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status })
           appendText(() => final)
         }
       }
-      recognition.onerror = (event) => {
-        console.error('Speech recognition error:', event.error)
+      recognition.onerror = () => {
         if (recordingRef.current) {
-          try { recognition.start() } catch (e) {}
+          try { recognition.start() } catch {}
         }
       }
       recognition.onend = () => {

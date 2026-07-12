@@ -9,6 +9,15 @@ const stripHtml = (html) => {
 
 const URL_REGEX = /https?:\/\/[^\s]+/g
 
+function isSafeUrl(url) {
+  try {
+    const parsed = new URL(url)
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:'
+  } catch {
+    return false
+  }
+}
+
 function renderTextWithLinks(text) {
   const parts = []
   let lastIndex = 0
@@ -17,7 +26,7 @@ function renderTextWithLinks(text) {
     if (match.index > lastIndex) {
       parts.push({ text: text.slice(lastIndex, match.index), link: false })
     }
-    parts.push({ text: match[0], link: true })
+    parts.push({ text: match[0], link: isSafeUrl(match[0]) })
     lastIndex = match.index + match[0].length
   }
   if (lastIndex < text.length) {

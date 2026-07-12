@@ -100,20 +100,12 @@ function LoginPage({ onAuth, onSignOut, user }) {
       }
     } catch (err) {
       const msg = err?.message || err?.name || 'An error occurred'
-      if (msg.includes('SECRET_HASH') || msg.includes('secret hash') || msg.includes('client secret')) {
-        setError('Incorrect email or password.')
-      } else if (msg.includes('CodeMismatch') || msg.includes('code mismatch')) {
-        setError('Invalid confirmation code. Please check and try again.')
-      } else if (msg.includes('ExpiredCode')) {
-        setError('Confirmation code expired. Request a new one.')
-      } else if (msg.includes('UserNotFoundException')) {
-        setError('No account found with this email.')
-      } else if (msg.includes('NotAuthorizedException')) {
-        setError('Incorrect email or password.')
-      } else if (msg.includes('UsernameExistsException')) {
-        setError('An account with this email already exists. Try logging in.')
+      if (msg.includes('CodeMismatch') || msg.includes('code mismatch') || msg.includes('ExpiredCode')) {
+        setError('Invalid or expired confirmation code.')
       } else if (msg.includes('InvalidPasswordException')) {
         setError('Password must be at least 8 characters.')
+      } else if (msg.includes('LimitExceededException')) {
+        setError('Too many attempts. Please try again later.')
       } else {
         setError('Incorrect email or password.')
       }

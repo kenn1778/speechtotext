@@ -1,14 +1,26 @@
 import { useEffect, useRef } from 'react'
+import DOMPurify from 'dompurify'
+
+function sanitize(html) {
+  return DOMPurify.sanitize(html || '', {
+    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'a', 'img'],
+    ALLOWED_ATTR: ['href', 'src', 'alt', 'style', 'target'],
+    ALLOW_DATA_ATTR: false,
+  })
+}
 
 function TranscriptEditor({ transcript, setTranscript }) {
   const divRef = useRef(null)
 
   useEffect(() => {
-    if (divRef.current && divRef.current.innerHTML !== transcript) {
-      const sel = window.getSelection()
-      const active = sel?.focusNode && divRef.current.contains(sel.focusNode)
-      if (!active) {
-        divRef.current.innerHTML = transcript || ''
+    if (divRef.current) {
+      const clean = sanitize(transcript)
+      if (divRef.current.innerHTML !== clean) {
+        const sel = window.getSelection()
+        const active = sel?.focusNode && divRef.current.contains(sel.focusNode)
+        if (!active) {
+          divRef.current.innerHTML = clean
+        }
       }
     }
   }, [transcript])
@@ -16,11 +28,22 @@ function TranscriptEditor({ transcript, setTranscript }) {
   const handleInput = () => {
     if (divRef.current) {
       const html = divRef.current.innerHTML
-      setTranscript(html === '<br>' ? '' : html)
+      const clean = sanitize(html === '<br>' ? '' : html)
+      if (clean !== html) {
+        divRef.current.innerHTML = clean
+      }
+      setTranscript(clean)
     }
   }
 
   const handlePaste = (e) => {
+    const text = e.clipboardData.getData('text/plain')
+    if (text) {
+      e.preventDefault()
+      document.execCommand('insertText', false, sanitize(text))
+      return
+    }
+
     const files = e.clipboardData.files
     const hasImage = files.length > 0 && [...files].some(f => f.type.startsWith('image/'))
     if (!hasImage) return
@@ -30,8 +53,8 @@ function TranscriptEditor({ transcript, setTranscript }) {
       if (file.type.startsWith('image/')) {
         const reader = new FileReader()
         reader.onload = (ev) => {
-          const img = `<img src="${ev.target.result}" style="max-width:100%;border-radius:8px;margin:8px 0;display:block" />`
-          document.execCommand('insertHTML', false, img)
+          const img = `<img src="${ev.target.result}" alt="pasted image" style="max-width:100%;border-radius:8px;margin:8px 0;display:block" />`
+          document.execCommand('insertHTML', false, sanitize(img))
         }
         reader.readAsDataURL(file)
       }
