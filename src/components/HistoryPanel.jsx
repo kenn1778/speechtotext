@@ -1,16 +1,9 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect, useRef, useState } from 'react'
-import { getHistory, groupByDate, clearHistory } from '../lib/historyStore.js'
+import { useEffect, useRef } from 'react'
+import { groupByDate } from '../lib/historyStore.js'
 
-function HistoryPanel({ open, onClose, onLoadTranscript, userId, user, onSignOut }) {
-  const [history, setHistory] = useState([])
+function HistoryPanel({ open, onClose, onLoadTranscript, userId, user, onSignOut, historyItems, onClearHistory }) {
   const panelRef = useRef(null)
-
-  useEffect(() => {
-    if (open) {
-      setHistory(getHistory(userId))
-    }
-  }, [open, userId])
 
   useEffect(() => {
     if (!open) return
@@ -23,12 +16,7 @@ function HistoryPanel({ open, onClose, onLoadTranscript, userId, user, onSignOut
     return () => document.removeEventListener('mousedown', handler)
   }, [open, onClose])
 
-  const handleClear = () => {
-    clearHistory(userId)
-    setHistory([])
-  }
-
-  const groups = groupByDate(history)
+  const groups = groupByDate(historyItems || [])
 
   return (
     <AnimatePresence>
@@ -55,11 +43,11 @@ function HistoryPanel({ open, onClose, onLoadTranscript, userId, user, onSignOut
                   <polyline points="12,6 12,12 16,14" />
                 </svg>
                 <h2 className="text-base font-semibold text-white">History</h2>
-                <span className="text-xs text-slate-500">{history.length}</span>
+                <span className="text-xs text-slate-500">{(historyItems || []).length}</span>
               </div>
               <div className="flex items-center gap-2">
-                {history.length > 0 && (
-                  <button onClick={handleClear} className="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded-lg hover:bg-red-500/10">
+                {(historyItems || []).length > 0 && (
+                  <button onClick={onClearHistory} className="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded-lg hover:bg-red-500/10">
                     Clear all
                   </button>
                 )}
@@ -101,7 +89,7 @@ function HistoryPanel({ open, onClose, onLoadTranscript, userId, user, onSignOut
               </div>
             )}
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6">
-              {history.length === 0 && (
+              {(!historyItems || historyItems.length === 0) && (
                 <div className="flex flex-col items-center justify-center h-full text-center text-slate-500 pt-20">
                   <svg viewBox="0 0 24 24" className="w-10 h-10 mb-3 opacity-40" fill="none" stroke="currentColor" strokeWidth="1">
                     <circle cx="12" cy="12" r="10" />
@@ -165,7 +153,7 @@ function HistoryPanel({ open, onClose, onLoadTranscript, userId, user, onSignOut
             </div>
 
             <div className="px-5 py-3 border-t border-white/5 text-[10px] text-slate-600 text-center">
-              History stored locally in browser
+              History stored on server &mdash; persists across sessions
             </div>
           </motion.div>
         </>
