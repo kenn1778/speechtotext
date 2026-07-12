@@ -23,7 +23,7 @@ function LoginPage({ onAuth, onSignOut, user }) {
   const [submitting, setSubmitting] = useState(false)
 
   const OAUTH_DOMAIN = 'speechweb-auth-dev.auth.us-east-1.amazoncognito.com'
-  const OAUTH_CLIENT_ID = '6uafsoq8rlvuh3aj0opluh1l2t'
+  const OAUTH_CLIENT_ID = '17njfo8q2qobrb5n1ft4f4cp4l'
 
   const resetForm = () => {
     setEmail('')
@@ -100,7 +100,9 @@ function LoginPage({ onAuth, onSignOut, user }) {
       }
     } catch (err) {
       const msg = err?.message || err?.name || 'An error occurred'
-      if (msg.includes('CodeMismatch') || msg.includes('code mismatch')) {
+      if (msg.includes('SECRET_HASH') || msg.includes('secret hash') || msg.includes('client secret')) {
+        setError('Incorrect email or password.')
+      } else if (msg.includes('CodeMismatch') || msg.includes('code mismatch')) {
         setError('Invalid confirmation code. Please check and try again.')
       } else if (msg.includes('ExpiredCode')) {
         setError('Confirmation code expired. Request a new one.')
@@ -113,7 +115,7 @@ function LoginPage({ onAuth, onSignOut, user }) {
       } else if (msg.includes('InvalidPasswordException')) {
         setError('Password must be at least 8 characters.')
       } else {
-        setError(msg)
+        setError('Incorrect email or password.')
       }
     } finally {
       setSubmitting(false)
