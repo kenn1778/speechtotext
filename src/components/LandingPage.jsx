@@ -14,8 +14,8 @@ function GoogleIcon() {
 
 function LandingPage({ onSignIn }) {
   const handleGoogleSignIn = () => {
-    const OAUTH_DOMAIN = 'speechweb-auth-dev.auth.us-east-1.amazoncognito.com'
-    const OAUTH_CLIENT_ID = '6uafsoq8rlvuh3aj0opluh1l2t'
+  const OAUTH_DOMAIN = 'speechweb-auth-dev.auth.us-east-1.amazoncognito.com'
+  const OAUTH_CLIENT_ID = '17njfo8q2qobrb5n1ft4f4cp4l'
     const redirectUri = window.location.origin + '/'
     const state = crypto.randomUUID()
     const url = 'https://' + OAUTH_DOMAIN + '/login'
