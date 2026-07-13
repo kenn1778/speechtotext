@@ -1,22 +1,95 @@
+const jwt = require('jsonwebtoken');
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const https = require('https');
 const crypto = require('crypto');
 
-const s3 = new S3Client({ region: process.env.REGION || 'us-east-1' });
+const REGION = process.env.REGION || 'us-east-1';
+const USER_POOL_ID = process.env.USER_POOL_ID || 'us-east-1_g2QvSscNA';
+const s3 = new S3Client({ region: REGION });
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key',
-  'Access-Control-Allow-Methods': 'POST,GET,OPTIONS',
-};
+const JWKS_URL = `https://cognito-idp.${REGION}.amazonaws.com/${USER_POOL_ID}/.well-known/jwks.json`;
+const ISS = `https://cognito-idp.${REGION}.amazonaws.com/${USER_POOL_ID}`;
+
+let jwksCache = null;
+let jwksCacheTime = 0;
+const CACHE_TTL = 3600000;
+
+async function getJwks() {
+  const now = Date.now();
+  if (jwksCache && now - jwksCacheTime < CACHE_TTL) return jwksCache;
+  const res = await fetch(JWKS_URL);
+  if (!res.ok) throw new Error('Failed to fetch JWKS');
+  const { keys } = await res.json();
+  jwksCache = keys;
+  jwksCacheTime = now;
+  return keys;
+}
+
+function getKey(keys, kid) {
+  const key = keys.find(k => k.kid === kid);
+  if (!key) return null;
+  const { kty, n, e, alg } = key;
+  return { key: { kty, n, e }, alg };
+}
+
+async function verifyToken(token) {
+  const decoded = jwt.decode(token, { complete: true });
+  if (!decoded || !decoded.header || !decoded.header.kid) return null;
+  const keys = await getJwks();
+  const { key, alg } = getKey(keys, decoded.header.kid);
+  if (!key) return null;
+  try {
+    return jwt.verify(token, key, { algorithms: [alg || 'RS256'], issuer: ISS });
+  } catch {
+    return null;
+  }
+}
+
+function isAuthorized(event) {
+  const authHeader = event.headers?.Authorization || event.headers?.authorization || '';
+  if (!authHeader.startsWith('Bearer ')) return false;
+  return verifyToken(authHeader.slice(7)).then(payload => payload !== null);
+}
+
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'https://d139i2fhyuv4er.cloudfront.net',
+  'https://text2speech.duckdns.org',
+];
+const envOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)
+  : [];
+const ALL_ORIGINS = [...new Set([...allowedOrigins, ...envOrigins])];
+
+function getCorsHeaders(event) {
+  const origin = event.headers?.origin || event.headers?.Origin || '';
+  const allowed = origin && ALL_ORIGINS.includes(origin) ? origin : ALL_ORIGINS[0] || '';
+  return {
+    'Access-Control-Allow-Origin': allowed,
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+    'Access-Control-Allow-Methods': 'POST,GET,OPTIONS',
+  };
+}
 
 exports.handler = async (event) => {
+  const corsHeaders = getCorsHeaders(event);
+
   try {
+    const authorized = await isAuthorized(event);
+    if (!authorized) {
+      return {
+        statusCode: 401,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: 'Unauthorized' }),
+      };
+    }
+
     const method = event.httpMethod;
     const path = event.path;
 
     if (method === 'POST' && path === '/transcribe') {
-      return await handleTranscribe(event);
+      return await handleTranscribe(event, corsHeaders);
     }
     return {
       statusCode: 404,
@@ -28,12 +101,12 @@ exports.handler = async (event) => {
     return {
       statusCode: 500,
       headers: corsHeaders,
-      body: JSON.stringify({ error: err.message }),
+      body: JSON.stringify({ error: 'Internal server error' }),
     };
   }
 };
 
-async function handleTranscribe(event) {
+async function handleTranscribe(event, corsHeaders) {
   const audioBase64 = event.body;
   if (!audioBase64) {
     return {
@@ -43,12 +116,20 @@ async function handleTranscribe(event) {
     };
   }
 
+  if (typeof audioBase64 !== 'string' || audioBase64.length > 10 * 1024 * 1024) {
+    return {
+      statusCode: 400,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'Invalid audio data' }),
+    };
+  }
+
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return {
       statusCode: 500,
       headers: corsHeaders,
-      body: JSON.stringify({ error: 'OPENAI_API_KEY not configured' }),
+      body: JSON.stringify({ error: 'Transcription service unavailable' }),
     };
   }
 
@@ -58,6 +139,13 @@ async function handleTranscribe(event) {
   const key = `audio/${jobName}.webm`;
 
   const audioBuffer = Buffer.from(audioBase64, 'base64');
+  if (audioBuffer.length === 0 || audioBuffer.length > 10 * 1024 * 1024) {
+    return {
+      statusCode: 400,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'Invalid audio data' }),
+    };
+  }
 
   await s3.send(new PutObjectCommand({
     Bucket: bucketName,
@@ -108,12 +196,7 @@ function transcribeWithWhisper(audioBuffer, apiKey) {
         if (res.statusCode === 200) {
           resolve(data.trim());
         } else {
-          try {
-            const err = JSON.parse(data);
-            reject(new Error(err.error?.message || data));
-          } catch {
-            reject(new Error(`Whisper API error ${res.statusCode}: ${data}`));
-          }
+          reject(new Error('Transcription failed'));
         }
       });
     });

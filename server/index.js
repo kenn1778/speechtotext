@@ -15,7 +15,6 @@ import {
   addHistoryItem,
   deleteHistoryItem,
   clearHistory,
-  backup,
 } from './db.js'
 import { handleTranscribeStream } from './wsTranscribe.js'
 
@@ -85,7 +84,7 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'", "https://*.amazonaws.com"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:", "blob:"],
       connectSrc: ["'self'", "https://cognito-idp.us-east-1.amazonaws.com", "https://*.execute-api.us-east-1.amazonaws.com", "wss://*.amazonaws.com", "wss://*.execute-api.us-east-1.amazonaws.com"],
@@ -109,7 +108,8 @@ const ALLOWED_ORIGINS = [...new Set([...defaultOrigins, ...envOrigins])]
 
 app.use(cors({
   origin: (origin, cb) => {
-    if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true)
+    if (!origin) return cb(null, false)
+    if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true)
     log('warn', `Blocked request from origin: ${origin}`)
     cb(null, false)
   },
@@ -129,9 +129,10 @@ app.use('/api/', globalLimiter)
 
 const authLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 10,
-  message: { error: 'Too many authentication requests. Try again later.' },
+  max: 20,
+  message: { error: 'Too many requests. Try again later.' },
 })
+app.use('/api/user/', authLimiter)
 
 app.use(express.json({ limit: '1mb' }))
 app.use(express.raw({ type: t => t.startsWith('audio/'), limit: '5mb' }))
@@ -150,13 +151,41 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString(), uptime: process.uptime() })
 })
 
-// WebSocket server for streaming transcription
 const wss = new WebSocketServer({ server, path: '/ws/transcribe' })
 
+const wsConnections = new Map()
+const WS_MAX_CONNECTIONS = 100
+const WS_RATE_WINDOW = 60000
+const WS_MAX_PER_IP = 5
+
 wss.on('connection', (ws, req) => {
+  const ip = req.socket?.remoteAddress || req.ip || 'unknown'
+  const now = Date.now()
+
+  if (wsConnections.size >= WS_MAX_CONNECTIONS) {
+    ws.close(1013, 'Too many connections')
+    return
+  }
+
+  const ipCount = [...wsConnections.values()].filter(e => e.ip === ip && now - e.time < WS_RATE_WINDOW).length
+  if (ipCount >= WS_MAX_PER_IP) {
+    ws.close(1013, 'Too many connections from this IP')
+    return
+  }
+
+  const connId = crypto.randomUUID().slice(0, 8)
+  wsConnections.set(connId, { ip, time: now })
+
+  ws.on('close', () => {
+    wsConnections.delete(connId)
+    wsConnections.forEach((v, k) => {
+      if (now - v.time > WS_RATE_WINDOW * 2) wsConnections.delete(k)
+    })
+  })
+
   handleTranscribeStream(ws, req).catch((err) => {
     log('error', 'WebSocket handler error', { error: err.message })
-    try { ws.send(JSON.stringify({ type: 'error', text: err.message })) } catch {}
+    try { ws.send(JSON.stringify({ type: 'error', text: 'Transcription failed' })) } catch {}
     try { ws.close() } catch {}
   })
 })
@@ -166,6 +195,22 @@ wss.on('error', (err) => {
 })
 
 const API_GATEWAY_URL = process.env.API_GATEWAY_URL || 'https://mytne8lapa.execute-api.us-east-1.amazonaws.com/dev/transcribe'
+
+const ALLOWED_API_HOSTS = [
+  'mytne8lapa.execute-api.us-east-1.amazonaws.com',
+]
+
+function validateApiTarget(urlStr) {
+  try {
+    const parsed = new URL(urlStr)
+    if (!ALLOWED_API_HOSTS.includes(parsed.hostname)) {
+      throw new Error('Invalid API target')
+    }
+    return parsed.href
+  } catch {
+    return null
+  }
+}
 
 app.post('/api/transcribe', authMiddleware, async (req, res) => {
   try {
@@ -183,10 +228,23 @@ app.post('/api/transcribe', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Empty request body' })
     }
 
+    const targetUrl = validateApiTarget(API_GATEWAY_URL)
+    if (!targetUrl) {
+      return res.status(500).json({ error: 'Transcription service unavailable' })
+    }
+
     const resType = contentType
     const body = resType === 'application/json' ? JSON.stringify(req.body) : req.body
 
-    const response = await fetch(API_GATEWAY_URL, {
+    if (resType === 'application/json') {
+      try {
+        JSON.parse(body)
+      } catch {
+        return res.status(400).json({ error: 'Invalid JSON body' })
+      }
+    }
+
+    const response = await fetch(targetUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body,
@@ -204,7 +262,13 @@ app.get('/api/transcribe/:jobName', authMiddleware, async (req, res) => {
     if (!/^[a-zA-Z0-9_\-]+$/.test(req.params.jobName)) {
       return res.status(400).json({ error: 'Invalid job name' })
     }
-    const response = await fetch(`${API_GATEWAY_URL}/${encodeURIComponent(req.params.jobName)}`)
+    const targetUrl = validateApiTarget(API_GATEWAY_URL)
+    if (!targetUrl) {
+      return res.status(500).json({ error: 'Transcription service unavailable' })
+    }
+    const separator = targetUrl.endsWith('/') ? '' : '/'
+    const url = `${targetUrl}${separator}${encodeURIComponent(req.params.jobName)}`
+    const response = await fetch(url)
     if (!response.ok) {
       return res.status(response.status).json({ error: 'Job not found' })
     }
@@ -241,6 +305,9 @@ app.post('/api/user/:userId/profile', authMiddleware, requireOwnUser, (req, res)
     if (picture && (typeof picture !== 'string' || picture.length > 2048)) {
       return res.status(400).json({ error: 'Invalid picture URL' })
     }
+    if (!/^https?:\/\//.test(picture || '')) {
+      return res.status(400).json({ error: 'Invalid picture URL' })
+    }
     const sanitized = {
       name: name.trim().slice(0, 100),
       email: email.trim().slice(0, 254),
@@ -272,6 +339,9 @@ app.post('/api/user/:userId/history', authMiddleware, requireOwnUser, (req, res)
     }
     if (typeof transcript !== 'string' || transcript.length > 50000) {
       return res.status(400).json({ error: 'Invalid transcript' })
+    }
+    if (preview !== undefined && typeof preview !== 'string') {
+      return res.status(400).json({ error: 'Invalid preview' })
     }
     const entry = addHistoryItem(req.params.userId, {
       type,
@@ -316,5 +386,4 @@ app.use(errorLogger)
 const PORT = process.env.PORT || 5174
 server.listen(PORT, () => {
   log('info', `SpeechWeb server starting`, { port: PORT, env: NODE_ENV })
-  log('info', `WebSocket server on ws://0.0.0.0:${PORT}/ws/transcribe`)
 })

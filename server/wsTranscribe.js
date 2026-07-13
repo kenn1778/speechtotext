@@ -174,7 +174,7 @@ export async function handleTranscribeStream(ws, req) {
 
   } catch (err) {
     try {
-      ws.send(JSON.stringify({ type: 'error', text: err.message || 'Transcription failed' }))
+      ws.send(JSON.stringify({ type: 'error', text: 'Transcription processing failed' }))
     } catch {}
   } finally {
     try { ws.close() } catch {}
