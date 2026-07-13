@@ -1,7 +1,3 @@
-import { useState } from 'react'
-import { Amplify } from 'aws-amplify'
-import { defaultStorage, sessionStorage } from 'aws-amplify/utils'
-
 export const formFields = {
   signIn: {
     email: {
@@ -65,15 +61,6 @@ function RememberMeField() {
           const checked = e.target.checked
           setRemember(checked)
           localStorage.setItem('speechweb_remember', String(checked))
-          try {
-            Amplify.configure({
-              Auth: {
-                Cognito: {
-                  keyValueStorage: checked ? defaultStorage : sessionStorage,
-                },
-              },
-            })
-          } catch {}
         }}
         style={{
           accentColor: '#f8fafc',

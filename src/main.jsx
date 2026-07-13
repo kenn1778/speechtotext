@@ -28,7 +28,6 @@ const API_BASE = import.meta.env.VITE_API_BASE || ''
 Hub.listen('auth', async ({ payload }) => {
   if (payload.event !== 'signedIn') return
   try {
-    await new Promise((r) => setTimeout(r, 1500))
     const { userId } = await getCurrentUser()
     const session = await fetchAuthSession()
     const token = session.tokens?.idToken?.toString()
