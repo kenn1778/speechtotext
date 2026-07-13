@@ -13,6 +13,7 @@ export default function UserProfilePanel({ onClose }) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [autoSaved, setAutoSaved] = useState(false)
 
   const userId = user?.userId || user?.username
 
@@ -27,6 +28,7 @@ export default function UserProfilePanel({ onClose }) {
           setName(data.name || '')
           setEmail(data.email || '')
           setUserProfile(data)
+          setAutoSaved(true)
         } else if (user) {
           setName(user.attributes?.name || '')
           setEmail(user.attributes?.email || '')
@@ -143,6 +145,11 @@ export default function UserProfilePanel({ onClose }) {
                 <>
                   <CheckIcon className="w-4 h-4" />
                   Saved
+                </>
+              ) : autoSaved ? (
+                <>
+                  <CheckIcon className="w-4 h-4" />
+                  Update Profile
                 </>
               ) : (
                 'Save Profile'

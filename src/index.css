@@ -98,3 +98,136 @@ button, input, textarea {
   body::after { opacity: 0.02 }
   input, select, textarea { font-size: 16px !important; }
 }
+
+/* ── Amplify Authenticator Dark Theme ───────────────────── */
+[data-amplify-authenticator] {
+  --amplify-components-button-primary-background-color: #f8fafc;
+  --amplify-components-button-primary-color: #09090d;
+  --amplify-components-button-primary-hover-background-color: #e2e8f0;
+  --amplify-components-button-primary-hover-color: #09090d;
+  --amplify-components-button-link-color: #94a3b8;
+  --amplify-components-button-link-hover-color: #f8fafc;
+  --amplify-components-fieldcontrol-background-color: rgba(255,255,255,0.05);
+  --amplify-components-fieldcontrol-border-color: rgba(255,255,255,0.08);
+  --amplify-components-fieldcontrol-color: #f8fafc;
+  --amplify-components-fieldcontrol-placeholder-color: #64748b;
+  --amplify-components-fieldcontrol-focus-border-color: rgba(59,130,246,0.3);
+  --amplify-components-fieldcontrol-focus-box-shadow: 0 0 0 2px rgba(59,130,246,0.3);
+  --amplify-components-fieldmessages-error-color: #f87171;
+  --amplify-components-tabs-item-active-border-color: #f8fafc;
+  --amplify-components-tabs-item-active-color: #f8fafc;
+  --amplify-components-tabs-item-color: #64748b;
+  --amplify-components-tabs-item-hover-color: #94a3b8;
+  --amplify-components-authenticator-router-background-color: transparent;
+  --amplify-components-authenticator-router-border-color: rgba(255,255,255,0.08);
+  --amplify-components-authenticator-router-box-shadow: none;
+  --amplify-components-authenticator-container-width-max: 28rem;
+  --amplify-components-label-color: #94a3b8;
+  --amplify-components-border-primary-color: rgba(255,255,255,0.08);
+  --amplify-radii-default: 12px;
+  --amplify-components-fieldcontrol-border-radius: 12px;
+  --amplify-components-button-border-radius: 12px;
+}
+
+[data-amplify-authenticator] [data-amplify-router] {
+  background: transparent;
+  border: none;
+}
+
+[data-amplify-authenticator] .amplify-tabs {
+  background: transparent;
+}
+
+[data-amplify-authenticator] .amplify-tabs__item {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+[data-amplify-authenticator] .amplify-field__show-password {
+  color: #64748b;
+}
+
+[data-amplify-authenticator] .amplify-field__show-password:hover {
+  color: #94a3b8;
+}
+
+[data-amplify-authenticator] .amplify-button--link {
+  font-size: 13px;
+}
+
+[data-amplify-authenticator] .amplify-button--primary {
+  font-weight: 500;
+  font-size: 14px;
+  height: 44px;
+}
+
+[data-amplify-authenticator] .amplify-field-group__outer-end {
+  border-radius: 12px;
+}
+
+[data-amplify-authenticator] .amplify-tabs__item[data-state='active'] {
+  font-weight: 600;
+}
+
+.auth-custom-header {
+  text-align: center;
+  padding: 0 0 20px;
+}
+
+.auth-custom-title {
+  font-size: 22px;
+  font-weight: 500;
+  color: #f8fafc;
+  margin: 0 0 6px;
+  letter-spacing: -0.01em;
+}
+
+.auth-custom-subtitle {
+  font-size: 14px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.amplify-divider {
+  --amplify-components-divider-border-color: rgba(255,255,255,0.06);
+}
+
+.amplify-divider--label {
+  color: #64748b;
+  font-size: 12px;
+}
+
+[data-amplify-authenticator] .amplify-tabs__item--active {
+  color: #f8fafc;
+  border-color: #f8fafc;
+}
+
+[data-amplify-authenticator] .amplify-tabs__item:hover {
+  color: #94a3b8;
+  border-color: rgba(255,255,255,0.08);
+}
+
+/* Divider between social login and email login */
+.amplify-divider[data-orientation='horizontal'] {
+  margin: 12px 0;
+}
+
+/* Social provider buttons */
+[data-amplify-authenticator] .amplify-button--social-provider {
+  border-color: rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  color: #f8fafc;
+  font-size: 14px;
+  height: 44px;
+}
+
+[data-amplify-authenticator] .amplify-button--social-provider:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.15);
+}
+
+/* Divider between */
+.amplify-flex[data-origin='SignIn'] > [data-amplify-divider],
+.amplify-flex[data-origin='SignUp'] > [data-amplify-divider] {
+  display: none;
+}

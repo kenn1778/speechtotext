@@ -5,7 +5,7 @@
   "useDefault": "default",
   "userpoolGroups": [],
   "usernameAttributes": ["email"],
-  "requiredAttributes": ["email"],
+  "requiredAttributes": ["email", "name"],
   "googleClientId": "906786853839-8ldlicm08ik1bc1afiea3kuj5jg3mure.apps.googleusercontent.com",
   "googleAppClientSecretGoogle": "REPLACE_WITH_GOOGLE_CLIENT_SECRET"
 }
