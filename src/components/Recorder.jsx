@@ -1,259 +1,321 @@
-import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect, useRef, useState } from 'react'
-import { uploadAudioForTranscription } from '../lib/speechClient.js'
-import RecordingVisualizer from './RecordingVisualizer.jsx'
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { motion } from 'framer-motion'
+import { MicrophoneIcon, PauseIcon, StopIcon, ArrowPathIcon, ExclamationTriangleIcon } from '@heroicons/react/24/solid'
+import useAppStore from '../store/useAppStore'
+import { requestMicPermission, startRecording, pauseRecording, resumeRecording, stopRecording, releaseMicrophone } from '../lib/audioService'
+import { startStreamingTranscription, stopStreaming, transcribeBlob } from '../lib/transcriptionClient'
+import WaveformVisualizer from './WaveformVisualizer'
 
-function Spinner() {
-  return (
-    <svg className="animate-spin h-4 w-4 text-blue-400" viewBox="0 0 24 24" fill="none">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-    </svg>
-  )
-}
+export default function Recorder() {
+  const {
+    appState, recordingStatus, partialTranscript, transcriptionError,
+    setRecordingStatus, setAppState, setPermissionState,
+    setAudioLevel, setPartialTranscript, setTranscript, setTranscriptionError,
+    canRecord, canReset, reset,
+  } = useAppStore()
 
-function Recorder({ audioBlob, setAudioBlob, setTranscript, setStatus, status }) {
-  const [transcribing, setTranscribing] = useState(false)
-  const [mediaRecorder, setMediaRecorder] = useState(null)
-  const [allowed, setAllowed] = useState(false)
-  const [showStoppedToast, setShowStoppedToast] = useState(false)
-  const recognitionRef = useRef(null)
-  const streamRef = useRef(null)
-  const chunksRef = useRef([])
-  const recordingRef = useRef(false)
-  const interimRef = useRef('')
-  const toastTimerRef = useRef(null)
+  const [error, setError] = useState(null)
+  const [elapsed, setElapsed] = useState(0)
+  const [fallbackMode, setFallbackMode] = useState(false)
+  const [transcribingStatus, setTranscribingStatus] = useState('idle')
+  const timerRef = useRef(null)
+  const stopStreamingRef = useRef(null)
+  const recordingBlobRef = useRef(null)
+  const hasFinalRef = useRef(false)
+  const fallbackTimeoutRef = useRef(null)
 
-  useEffect(() => {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setStatus('unsupported')
-    }
-  }, [setStatus])
+  const autoStartedRef = useRef(false)
 
   useEffect(() => {
-    if (status === 'processing' || status === 'uploading' || status === 'transcribing') {
-      setShowStoppedToast(true)
-      clearTimeout(toastTimerRef.current)
-      toastTimerRef.current = setTimeout(() => {
-        if (status === 'transcribed' || status === 'recorded' || status === 'error') {
-          setShowStoppedToast(false)
-        }
-      }, 3000)
+    if (appState === 'recording' && recordingStatus === 'inactive' && !autoStartedRef.current) {
+      autoStartedRef.current = true
+      handleStart()
     }
-    if (status === 'transcribed' || status === 'recorded') {
-      toastTimerRef.current = setTimeout(() => setShowStoppedToast(false), 2000)
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current)
+      if (fallbackTimeoutRef.current) clearTimeout(fallbackTimeoutRef.current)
     }
-    return () => clearTimeout(toastTimerRef.current)
-  }, [status])
+  }, [appState])
 
-  const requestMicrophone = async () => {
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current)
+      if (fallbackTimeoutRef.current) clearTimeout(fallbackTimeoutRef.current)
+    }
+  }, [])
+
+  const clearTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current)
+      timerRef.current = null
+    }
+  }, [])
+
+  const handleStart = useCallback(async () => {
+    setError(null)
+    setFallbackMode(false)
+    setTranscribingStatus('idle')
+    hasFinalRef.current = false
+    recordingBlobRef.current = null
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      streamRef.current = stream
-      setAllowed(true)
-      const recorder = new MediaRecorder(stream)
-      recorder.ondataavailable = event => {
-        if (event.data.size > 0) {
-          chunksRef.current = [...chunksRef.current, event.data]
-        }
-      }
-      recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
-        setAudioBlob(blob)
-        chunksRef.current = []
-        setStatus('recorded')
-      }
-      setMediaRecorder(recorder)
-      setStatus('ready')
-      return recorder
-    } catch (error) {
-      setStatus('denied')
-    }
-  }
+      const stream = await requestMicPermission()
+      setPermissionState('granted')
+      setAppState('recording')
+      setRecordingStatus('recording')
 
-  const startRecording = async () => {
-    const recorder = mediaRecorder || await requestMicrophone()
-    if (!recorder) return
-    chunksRef.current = []
-    setShowStoppedToast(false)
-    recorder.start()
-    recordingRef.current = true
-    setStatus('recording')
-    startInlineRecognition()
-  }
+      startRecording({
+        onLevel: (level) => useAppStore.getState().setAudioLevel(level),
+        onStop: (blob) => {
+          recordingBlobRef.current = blob
+          useAppStore.getState().setAudioBlob(blob)
+          clearTimer()
+          setRecordingStatus('inactive')
 
-  const stopRecording = () => {
-    recordingRef.current = false
-    mediaRecorder?.stop()
-    stopInlineRecognition()
-    setStatus('processing')
-  }
-
-  const startInlineRecognition = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-    if (!SpeechRecognition) {
-      setStatus('no-speech-api')
-      return
-    }
-    try {
-      const recognition = new SpeechRecognition()
-      recognition.continuous = true
-      recognition.interimResults = true
-      recognition.lang = 'en-US'
-      const appendText = (fn) => {
-        setTranscript(prev => {
-          const plain = prev.replace(/<[^>]*>/g, '')
-          return plain + fn()
-        })
-      }
-      recognition.onresult = (event) => {
-        let final = ''
-        let interim = ''
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const res = event.results[i]
-          if (res.isFinal) final += res[0].transcript + ' '
-          else interim += res[0].transcript
-        }
-        interimRef.current = interim
-        if (final) {
-          appendText(() => final)
-        }
-      }
-      recognition.onerror = () => {
-        if (recordingRef.current) {
-          try { recognition.start() } catch {}
-        }
-      }
-      recognition.onend = () => {
-        if (interimRef.current) {
-          appendText(() => interimRef.current + ' ')
-          interimRef.current = ''
-        }
-        if (recordingRef.current) {
-          try { recognition.start() } catch (e) {}
-        }
-      }
-      recognition.start()
-      recognitionRef.current = recognition
-    } catch (err) {
-      setStatus('no-speech-api')
-    }
-  }
-
-  const stopInlineRecognition = () => {
-    if (interimRef.current) {
-      setTranscript(prev => {
-        const plain = prev.replace(/<[^>]*>/g, '')
-        return plain + interimRef.current + ' '
+          if (!hasFinalRef.current) {
+            fallbackTimeoutRef.current = setTimeout(() => {
+              if (!hasFinalRef.current && recordingBlobRef.current) {
+                runBatchFallback(recordingBlobRef.current)
+              }
+            }, 3000)
+          }
+        },
       })
-      interimRef.current = ''
+
+      const stop = startStreamingTranscription({
+        stream,
+        onPartial: (text) => {
+          useAppStore.getState().setPartialTranscript(text)
+        },
+        onFinal: (text) => {
+          hasFinalRef.current = true
+          if (fallbackTimeoutRef.current) {
+            clearTimeout(fallbackTimeoutRef.current)
+            fallbackTimeoutRef.current = null
+          }
+          setTranscript(text)
+          setTranscribingStatus('completed')
+          stopStreamingRef.current = null
+        },
+        onError: (err) => {
+          setTranscriptionError(err.message)
+          setTranscribingStatus('error')
+        },
+        onEnd: () => {
+          stopStreamingRef.current = null
+        },
+      })
+
+      stopStreamingRef.current = stop
+
+      clearTimer()
+      const startTime = Date.now()
+      timerRef.current = setInterval(() => {
+        setElapsed(Math.floor((Date.now() - startTime) / 1000))
+      }, 200)
+    } catch (err) {
+      if (err.name === 'NotAllowedError') {
+        setPermissionState('denied')
+        setError('Microphone access denied. Please allow microphone access in your browser settings.')
+      } else {
+        setError(err.message || 'Failed to start recording')
+      }
     }
-    const recognition = recognitionRef.current
-    if (recognition) {
-      recognition.stop()
-      recognitionRef.current = null
+  }, [clearTimer, setAppState, setRecordingStatus, setPermissionState, setAudioLevel, setTranscript, setPartialTranscript, setTranscriptionError])
+
+  const runBatchFallback = useCallback(async (blob) => {
+    setFallbackMode(true)
+    setTranscribingStatus('transcribing')
+
+    try {
+      setAppState('transcribing')
+      const text = await transcribeBlob(blob)
+      setTranscript(text)
+      setTranscribingStatus('completed')
+    } catch (err) {
+      setError(err.message || 'Transcription failed. Please try again.')
+      setTranscribingStatus('error')
+      setAppState('editing')
+    } finally {
+      setFallbackMode(false)
     }
+  }, [setAppState, setTranscript])
+
+  const handlePause = useCallback(() => {
+    pauseRecording()
+    setRecordingStatus('paused')
+  }, [])
+
+  const handleResume = useCallback(() => {
+    resumeRecording()
+    setRecordingStatus('recording')
+  }, [])
+
+  const handleStop = useCallback(() => {
+    if (stopStreamingRef.current) {
+      stopStreamingRef.current()
+      stopStreamingRef.current = null
+    }
+    stopStreaming()
+    stopRecording()
+  }, [])
+
+  const handleReset = useCallback(() => {
+    clearTimer()
+    if (fallbackTimeoutRef.current) {
+      clearTimeout(fallbackTimeoutRef.current)
+      fallbackTimeoutRef.current = null
+    }
+    if (stopStreamingRef.current) {
+      stopStreamingRef.current()
+      stopStreamingRef.current = null
+    }
+    stopStreaming()
+    releaseMicrophone()
+    setElapsed(0)
+    setPartialTranscript('')
+    setError(null)
+    setTranscribingStatus('idle')
+    setFallbackMode(false)
+    setTranscriptionError(null)
+    autoStartedRef.current = false
+    hasFinalRef.current = false
+    recordingBlobRef.current = null
+    reset()
+  }, [clearTimer, reset, setPartialTranscript, setTranscriptionError])
+
+  const formatTime = (s) => {
+    const m = Math.floor(s / 60)
+    const sec = s % 60
+    return `${m}:${sec.toString().padStart(2, '0')}`
   }
 
-  const handleTranscribe = async () => {
-    if (!audioBlob) return
-    setTranscribing(true)
-    setStatus('transcribing')
-    try {
-      const result = await uploadAudioForTranscription(audioBlob)
-      if (result.status === 'COMPLETED' && result.transcript) {
-        setTranscript(result.transcript)
-      }
-      setStatus('transcribed')
-    } catch {
-      setStatus('error')
-    }
-    setTranscribing(false)
+  if (!canRecord() && appState !== 'recording' && appState !== 'transcribing') {
+    return null
   }
+
+  const isRecording = recordingStatus === 'recording'
+  const isPaused = recordingStatus === 'paused'
+  const showControls = isRecording || isPaused
 
   return (
-    <div className="space-y-6 relative">
-      <AnimatePresence>
-        {showStoppedToast && (
-          <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.9 }}
-            className="absolute -top-4 left-1/2 -translate-x-1/2 z-20 w-[calc(100%-2rem)] sm:w-auto"
-          >
-            <div className="flex items-center gap-2 sm:gap-3 bg-gradient-to-r from-blue-900/90 to-indigo-900/90 backdrop-blur-xl border border-blue-500/30 rounded-xl px-4 sm:px-5 py-2.5 sm:py-3 shadow-lg shadow-blue-500/10">
-              <Spinner />
-              <div className="text-left">
-                <p className="text-sm font-medium text-blue-200">Recording stopped</p>
-                <p className="text-xs text-blue-300/70">
-                  {status === 'processing' ? 'Saving audio...' :
-                   status === 'uploading' ? 'Uploading to cloud...' :
-                   status === 'transcribing' ? 'Transcribing via Johnkennedy-V1-Flash...' :
-                   'Processing...'}
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="flex flex-col items-center gap-6 p-8"
+    >
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm max-w-md text-center"
+          role="alert"
+        >
+          {error}
+        </motion.div>
+      )}
 
-      <div className="rounded-2xl sm:rounded-3xl border border-white/10 bg-neutral-950/80 p-4 sm:p-5 lg:p-6 shadow-xl shadow-black/40">
-        <div className="flex items-center justify-between gap-3 sm:gap-4">
-          <div>
-            <p className="text-[10px] sm:text-sm uppercase tracking-[0.2em] sm:tracking-[0.24em] text-slate-400">Recorder</p>
-            <h2 className="mt-1 sm:mt-2 text-xl sm:text-2xl font-semibold text-white">Live capture</h2>
-          </div>
-          <div className="rounded-full border border-white/10 bg-white/5 px-3 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-sm text-slate-300 whitespace-nowrap">
-            {status === 'recording' ? 'Recording' : status === 'processing' ? 'Processing' : status === 'uploading' ? 'Uploading' : status === 'transcribing' ? 'Transcribing...' : status === 'transcribed' ? 'Done' : status === 'no-speech-api' ? 'Speech API not available' : 'Idle'}
-          </div>
-        </div>
+      {transcriptionError && transcribingStatus === 'error' && !fallbackMode && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm max-w-md text-center flex items-center gap-2 justify-center"
+          role="alert"
+        >
+          <ExclamationTriangleIcon className="w-4 h-4 flex-shrink-0" />
+          <span>Streaming failed. Falling back to batch transcription if recorded.</span>
+        </motion.div>
+      )}
 
-        <div className="mt-4 sm:mt-6 grid gap-3 sm:gap-4 grid-cols-2">
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={startRecording}
-            className="w-full rounded-2xl bg-white/10 px-4 sm:px-5 py-3.5 sm:py-3 text-center text-white text-sm transition hover:bg-white/15 min-h-[48px]"
-          >
-            Start Recording
-          </motion.button>
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={stopRecording}
-            disabled={!mediaRecorder || status !== 'recording'}
-            className="w-full rounded-2xl bg-slate-800 px-4 sm:px-5 py-3.5 sm:py-3 text-center text-slate-200 text-sm transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40 min-h-[48px]"
-          >
-            Stop Recording
-          </motion.button>
-        </div>
-        <div className="mt-4 sm:mt-6">
-          <RecordingVisualizer stream={streamRef.current} active={status === 'recording'} />
-        </div>
-        <p className="mt-3 sm:mt-4 text-xs sm:text-sm leading-5 sm:leading-6 text-slate-400">
-          Tap the button to record audio. After stopping, the app simulates transcription and prepares export options.
-        </p>
-      </div>
+      <WaveformVisualizer isActive={isRecording} />
 
-      <div className="rounded-2xl sm:rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-5 lg:p-6 shadow-glow">
-        <div className="flex items-center justify-between gap-3 sm:gap-4">
-          <div>
-            <p className="text-[10px] sm:text-sm uppercase tracking-[0.2em] sm:tracking-[0.24em] text-slate-400">Output Preview</p>
-            <p className="text-xs sm:text-sm text-slate-300">Audio file ready: {audioBlob ? 'yes' : 'no'}</p>
-          </div>
-          <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full border border-white/10 bg-black/40 flex-shrink-0" />
-        </div>
-        {audioBlob && (
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={handleTranscribe}
-            disabled={transcribing}
-            className="mt-3 sm:mt-4 w-full rounded-2xl bg-indigo-700 px-5 py-3 text-sm text-white transition hover:bg-indigo-600 disabled:cursor-not-allowed disabled:opacity-40 min-h-[44px]"
-          >
-            {transcribing ? 'Transcribing...' : 'Transcribe via Backend'}
-          </motion.button>
+      <div className="flex items-center gap-3">
+        {showControls && (
+          <>
+            <span className="text-2xl font-mono tabular-nums text-text-secondary min-w-[4ch]">
+              {formatTime(elapsed)}
+            </span>
+
+            {isRecording ? (
+              <button
+                onClick={handlePause}
+                className="flex items-center gap-2 px-5 py-3 rounded-xl bg-surface-1 text-text-secondary border border-border hover:bg-surface-2 transition-all duration-200 focus-visible:outline-2 focus-visible:outline-accent-glow"
+                aria-label="Pause recording"
+              >
+                <PauseIcon className="w-5 h-5" />
+              </button>
+            ) : isPaused ? (
+              <button
+                onClick={handleResume}
+                className="flex items-center gap-2 px-5 py-3 rounded-xl bg-surface-1 text-text-secondary border border-border hover:bg-surface-2 transition-all duration-200 focus-visible:outline-2 focus-visible:outline-accent-glow"
+                aria-label="Resume recording"
+              >
+                <MicrophoneIcon className="w-5 h-5" />
+              </button>
+            ) : null}
+
+            <button
+              onClick={handleStop}
+              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all duration-200 focus-visible:outline-2 focus-visible:outline-red-500"
+              aria-label="Stop and transcribe"
+            >
+              <StopIcon className="w-5 h-5" />
+            </button>
+          </>
         )}
       </div>
-    </div>
+
+      <div className="flex gap-3">
+        {canReset() && (
+          <button
+            onClick={handleReset}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm text-text-secondary hover:text-text-primary transition-colors focus-visible:outline-2 focus-visible:outline-accent-glow"
+          >
+            <ArrowPathIcon className="w-4 h-4" />
+            Reset
+          </button>
+        )}
+      </div>
+
+      {isRecording && partialTranscript && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="w-full max-w-md text-center"
+        >
+          <p className="text-sm text-text-secondary/70 italic leading-relaxed">
+            {partialTranscript}
+          </p>
+        </motion.div>
+      )}
+
+      {transcribingStatus === 'transcribing' && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex flex-col items-center gap-2"
+        >
+          <div className="flex gap-1">
+            {[0, 1, 2].map((i) => (
+              <motion.div
+                key={i}
+                className="w-2 h-2 rounded-full bg-accent-glow"
+                animate={{ opacity: [0.3, 1, 0.3] }}
+                transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
+              />
+            ))}
+          </div>
+          <p className="text-sm text-text-secondary">
+            {fallbackMode ? 'Transcribing via batch service…' : 'Transcribing via streaming…'}
+          </p>
+          {partialTranscript && (
+            <p className="text-sm text-text-secondary/70 max-w-md text-center italic">
+              {partialTranscript}
+            </p>
+          )}
+        </motion.div>
+      )}
+    </motion.div>
   )
 }
-
-export default Recorder

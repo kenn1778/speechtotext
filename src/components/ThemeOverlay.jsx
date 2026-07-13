@@ -1,38 +1,76 @@
+import { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
+import clsx from 'clsx'
 
-const DUST_POSITIONS = [
-  { top: '5%', left: '8%', size: 120, delay: 0 },
-  { top: '15%', right: '12%', size: 80, delay: 0.5 },
-  { top: '45%', left: '5%', size: 100, delay: 1 },
-  { top: '70%', right: '8%', size: 140, delay: 0.3 },
-  { top: '85%', left: '15%', size: 90, delay: 0.8 },
-  { top: '30%', right: '20%', size: 60, delay: 1.2 },
-  { bottom: '10%', right: '25%', size: 110, delay: 0.6 },
-  { top: '60%', left: '25%', size: 70, delay: 0.9 },
-]
+export default function ThemeOverlay({ className }) {
+  const canvasRef = useRef(null)
 
-function ThemeOverlay() {
+  useEffect(() => {
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (prefersReduced) return
+
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    let w = (canvas.width = window.innerWidth)
+    let h = (canvas.height = window.innerHeight)
+    let particles = []
+    const count = Math.min(40, Math.floor((w * h) / 50000))
+
+    for (let i = 0; i < count; i++) {
+      particles.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        r: Math.random() * 1.5 + 0.5,
+        dx: (Math.random() - 0.5) * 0.15,
+        dy: (Math.random() - 0.5) * 0.15,
+        opacity: Math.random() * 0.4 + 0.1,
+      })
+    }
+
+    let animId
+    function tick() {
+      ctx.clearRect(0, 0, w, h)
+      for (const p of particles) {
+        p.x += p.dx
+        p.y += p.dy
+        if (p.x < 0 || p.x > w) p.dx *= -1
+        if (p.y < 0 || p.y > h) p.dy *= -1
+        ctx.beginPath()
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2)
+        ctx.fillStyle = `rgba(255,255,255,${p.opacity})`
+        ctx.fill()
+      }
+      animId = requestAnimationFrame(tick)
+    }
+    tick()
+
+    const onResize = () => {
+      w = canvas.width = window.innerWidth
+      h = canvas.height = window.innerHeight
+    }
+    window.addEventListener('resize', onResize)
+    return () => {
+      cancelAnimationFrame(animId)
+      window.removeEventListener('resize', onResize)
+    }
+  }, [])
+
   return (
-    <>
-      {DUST_POSITIONS.map((pos, i) => (
-        <motion.div
-          key={i}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: [0, 0.06, 0.03, 0.07, 0.04] }}
-          transition={{ duration: 8, delay: pos.delay, repeat: Infinity, repeatType: 'reverse' }}
-          className="absolute pointer-events-none rounded-full bg-white blur-3xl"
-          style={{
-            width: pos.size,
-            height: pos.size,
-            top: pos.top,
-            left: pos.left,
-            right: pos.right,
-            bottom: pos.bottom,
-          }}
-        />
-      ))}
-    </>
+    <motion.div
+      className={clsx('fixed inset-0 pointer-events-none z-0', className)}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 1 }}
+    >
+      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundImage:
+            'radial-gradient(circle at 50% 0%, rgba(255,255,255,0.05), transparent 40%)',
+        }}
+      />
+    </motion.div>
   )
 }
-
-export default ThemeOverlay

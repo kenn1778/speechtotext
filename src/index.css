@@ -4,24 +4,36 @@
 
 :root {
   color-scheme: dark;
+
+  --bg-base: #09090d;
+  --surface-1: rgba(255, 255, 255, 0.05);
+  --surface-2: rgba(255, 255, 255, 0.08);
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.15);
+  --accent-glow: rgba(59, 130, 246, 0.3);
+
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 html {
-  background: #09090d;
+  background: var(--bg-base);
   -webkit-text-size-adjust: 100%;
 }
 
 body {
   min-height: 100vh;
   min-height: 100dvh;
-  background: radial-gradient(circle at top, rgba(255,255,255,0.06), transparent 30%),
+  background:
+    radial-gradient(circle at top, rgba(255,255,255,0.06), transparent 30%),
     radial-gradient(circle at bottom right, rgba(255,255,255,0.04), transparent 28%),
-    #09090d;
-  color: #f8fafc;
+    var(--bg-base);
+  color: var(--text-primary);
   overscroll-behavior: none;
 }
 
+/* Dust / noise overlay */
 body::before {
   content: '';
   position: fixed;
@@ -29,55 +41,41 @@ body::before {
   pointer-events: none;
   background-image: radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px);
   background-size: 40px 40px;
-  opacity: 0.08;
+  opacity: 0.06;
 }
 
+/* Scratch texture */
 body::after {
   content: '';
   position: fixed;
   inset: 0;
   pointer-events: none;
-  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><path d="M0 0h160v160H0z" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1" stroke-dasharray="2,10"/></svg>');
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cpath d='M0 0h160v160H0z' fill='none' stroke='rgba(255,255,255,0.03)' stroke-width='1' stroke-dasharray='2,10'/%3E%3C/svg%3E");
   opacity: 0.04;
 }
 
 * {
   box-sizing: border-box;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
 
-button,
-input,
-textarea {
+button, input, textarea {
   font: inherit;
 }
 
-.fade-text {
-  text-shadow: 0 0 20px rgba(255,255,255,0.08);
-}
-
-[contenteditable]:empty:before {
-  content: 'Your transcript appears here after recording...';
-  color: #64748b;
-  pointer-events: none;
-}
-
-@media print {
-  body { display: none !important; }
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @media (max-width: 640px) {
-  body::before { opacity: 0.04; background-size: 24px 24px }
+  body::before { opacity: 0.03; background-size: 24px 24px }
   body::after { opacity: 0.02 }
-  html { font-size: 14px }
-  button { touch-action: manipulation }
   input, select, textarea { font-size: 16px !important; }
-}
-
-@media (min-width: 641px) and (max-width: 1024px) {
-  html { font-size: 15px }
 }

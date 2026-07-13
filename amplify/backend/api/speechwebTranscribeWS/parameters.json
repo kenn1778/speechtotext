@@ -1,0 +1,11 @@
+{
+  "dependsOn": [
+    {
+      "attributes": ["Arn"],
+      "category": "function",
+      "resourceName": "speechwebTranscribeStream"
+    }
+  ],
+  "providerPlugin": "awscloudformation",
+  "service": "API Gateway WebSocket"
+}

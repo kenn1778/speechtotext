@@ -16,7 +16,8 @@
         "speechwebAuth": {}
       },
       "function": {
-        "speechwebTranscribe": {}
+        "speechwebTranscribe": {},
+        "speechwebTranscribeStream": {}
       },
       "hosting": {
         "S3AndCloudFront": {}

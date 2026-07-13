@@ -1,85 +1,104 @@
-import { useEffect, useRef } from 'react'
-import DOMPurify from 'dompurify'
+import { useRef, useEffect } from 'react'
+import { motion } from 'framer-motion'
+import { ArrowPathIcon, DocumentTextIcon, MicrophoneIcon } from '@heroicons/react/24/outline'
+import clsx from 'clsx'
+import useAppStore from '../store/useAppStore'
 
-function sanitize(html) {
-  return DOMPurify.sanitize(html || '', {
-    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 's', 'a', 'img'],
-    ALLOWED_ATTR: ['href', 'src', 'alt', 'style', 'target'],
-    ALLOW_DATA_ATTR: false,
-  })
-}
+export default function TranscriptEditor() {
+  const {
+    appState, editedTranscript, rawTranscript, partialTranscript,
+    recordingStatus, updateTranscript, resetTranscript,
+  } = useAppStore()
 
-function TranscriptEditor({ transcript, setTranscript }) {
-  const divRef = useRef(null)
+  const textareaRef = useRef(null)
 
   useEffect(() => {
-    if (divRef.current) {
-      const clean = sanitize(transcript)
-      if (divRef.current.innerHTML !== clean) {
-        const sel = window.getSelection()
-        const active = sel?.focusNode && divRef.current.contains(sel.focusNode)
-        if (!active) {
-          divRef.current.innerHTML = clean
-        }
-      }
+    if (appState === 'editing' && textareaRef.current) {
+      textareaRef.current.focus()
     }
-  }, [transcript])
+  }, [appState])
 
-  const handleInput = () => {
-    if (divRef.current) {
-      const html = divRef.current.innerHTML
-      const clean = sanitize(html === '<br>' ? '' : html)
-      if (clean !== html) {
-        divRef.current.innerHTML = clean
-      }
-      setTranscript(clean)
-    }
-  }
+  const showPartial = appState === 'recording' && partialTranscript && recordingStatus === 'recording'
+  const showEditor = appState === 'editing' || appState === 'exporting'
 
-  const handlePaste = (e) => {
-    const text = e.clipboardData.getData('text/plain')
-    if (text) {
-      e.preventDefault()
-      document.execCommand('insertText', false, sanitize(text))
-      return
-    }
+  if (!showPartial && !showEditor) return null
 
-    const files = e.clipboardData.files
-    const hasImage = files.length > 0 && [...files].some(f => f.type.startsWith('image/'))
-    if (!hasImage) return
+  const wordCount = editedTranscript.trim()
+    ? editedTranscript.trim().split(/\s+/).length
+    : 0
 
-    e.preventDefault()
-    for (const file of files) {
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader()
-        reader.onload = (ev) => {
-          const img = `<img src="${ev.target.result}" alt="pasted image" style="max-width:100%;border-radius:8px;margin:8px 0;display:block" />`
-          document.execCommand('insertHTML', false, sanitize(img))
-        }
-        reader.readAsDataURL(file)
-      }
-    }
+  const hasChanges = editedTranscript !== rawTranscript
+
+  if (showPartial) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        className="w-full max-w-2xl mx-auto flex flex-col gap-4"
+      >
+        <div className="flex items-center gap-2 text-text-secondary">
+          <MicrophoneIcon className="w-4 h-4 text-accent-glow animate-pulse" />
+          <span className="text-sm">Live transcription</span>
+        </div>
+
+        <div className={clsx(
+          'w-full min-h-[120px] p-4 rounded-xl',
+          'bg-surface-1/50 border border-border/50',
+          'text-text-secondary text-base leading-relaxed italic'
+        )}>
+          {partialTranscript || (
+            <span className="text-text-secondary/40">Speak now — transcript will appear here in real time…</span>
+          )}
+        </div>
+      </motion.div>
+    )
   }
 
   return (
-    <div className="space-y-5">
-      <div>
-        <h3 className="text-xl font-semibold text-white">Transcript</h3>
-        <p className="mt-2 text-sm text-slate-400">
-          Review and edit your converted speech before creating a final PDF or slide deck.
-        </p>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="w-full max-w-2xl mx-auto flex flex-col gap-4"
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-text-secondary">
+          <DocumentTextIcon className="w-4 h-4" />
+          <span className="text-sm">{wordCount} words</span>
+        </div>
+
+        {hasChanges && (
+          <button
+            onClick={resetTranscript}
+            className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-text-primary transition-colors focus-visible:outline-2 focus-visible:outline-accent-glow"
+          >
+            <ArrowPathIcon className="w-3.5 h-3.5" />
+            Reset to original
+          </button>
+        )}
       </div>
 
-      <div
-        ref={divRef}
-        contentEditable
-        suppressContentEditableWarning
-        onInput={handleInput}
-        onPaste={handlePaste}
-        className="min-h-[120px] sm:min-h-[160px] md:min-h-[220px] max-h-[400px] w-full rounded-3xl border border-white/10 bg-black/40 px-5 py-5 text-sm text-slate-100 outline-none transition focus:border-white/30 focus:ring-2 focus:ring-white/10 overflow-y-auto whitespace-pre-wrap"
+      <textarea
+        ref={textareaRef}
+        value={editedTranscript}
+        onChange={(e) => updateTranscript(e.target.value)}
+        className={clsx(
+          'w-full min-h-[200px] max-h-[60vh] p-4 rounded-xl resize-y',
+          'bg-surface-1 border border-border',
+          'text-text-primary text-base leading-relaxed',
+          'placeholder:text-text-secondary/50',
+          'focus:outline-none focus:border-accent-glow focus:shadow-glow-sm',
+          'transition-all duration-200'
+        )}
+        placeholder="Your transcript will appear here…"
+        aria-label="Edit transcript"
+        spellCheck
       />
-    </div>
+
+      <p className="text-xs text-text-secondary/60">
+        Edit the transcript freely. Your changes won't affect the original recording.
+      </p>
+    </motion.div>
   )
 }
-
-export default TranscriptEditor

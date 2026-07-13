@@ -1,0 +1,17 @@
+{
+  "lambdaLayers": [],
+  "permissions": {
+    "storage": {
+      "speechwebStorage": [
+        "read",
+        "write"
+      ]
+    }
+  },
+  "environmentVariables": {
+    "STORAGE_BUCKET": {
+      "Ref": "storageSpeechwebStorage"
+    },
+    "REGION": "us-east-1"
+  }
+}

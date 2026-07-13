@@ -1,8 +1,11 @@
+import http from 'http'
+import { URL } from 'url'
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
 import dotenv from 'dotenv'
+import { WebSocketServer } from 'ws'
 import { authMiddleware, requireOwnUser } from './auth.js'
 import {
   getUserProfile,
@@ -12,10 +15,12 @@ import {
   deleteHistoryItem,
   clearHistory,
 } from './db.js'
+import { handleTranscribeStream } from './wsTranscribe.js'
 
 dotenv.config()
 
 const app = express()
+const server = http.createServer(app)
 
 app.use(helmet({
   contentSecurityPolicy: {
@@ -24,7 +29,7 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:", "blob:"],
-      connectSrc: ["'self'", "https://cognito-idp.us-east-1.amazonaws.com", "https://*.execute-api.us-east-1.amazonaws.com"],
+      connectSrc: ["'self'", "https://cognito-idp.us-east-1.amazonaws.com", "https://*.execute-api.us-east-1.amazonaws.com", "wss://*.amazonaws.com", "wss://*.execute-api.us-east-1.amazonaws.com"],
       fontSrc: ["'self'", "data:"],
       objectSrc: ["'none'"],
       frameSrc: ["'none'"],
@@ -54,6 +59,22 @@ app.use('/api/', limiter)
 
 app.use(express.json({ limit: '1mb' }))
 app.use(express.raw({ type: t => t.startsWith('audio/'), limit: '5mb' }))
+
+// WebSocket server for streaming transcription
+const wss = new WebSocketServer({ server, path: '/ws/transcribe' })
+
+wss.on('connection', (ws, req) => {
+  handleTranscribeStream(ws, req).catch((err) => {
+    try { ws.send(JSON.stringify({ type: 'error', text: err.message })) } catch {}
+    try { ws.close() } catch {}
+  })
+})
+
+wss.on('error', (err) => {
+  if (process.env.NODE_ENV !== 'production') {
+    console.error('WebSocket server error:', err.message)
+  }
+})
 
 const API_GATEWAY_URL = process.env.API_GATEWAY_URL || 'https://mytne8lapa.execute-api.us-east-1.amazonaws.com/dev/transcribe'
 
@@ -194,8 +215,9 @@ app.delete('/api/user/:userId/history', authMiddleware, requireOwnUser, (req, re
 })
 
 const PORT = process.env.PORT || 5174
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   if (process.env.NODE_ENV !== 'production') {
     console.log(`SpeechWeb proxy running on http://localhost:${PORT}`)
+    console.log(`WebSocket server on ws://localhost:${PORT}/ws/transcribe`)
   }
 })

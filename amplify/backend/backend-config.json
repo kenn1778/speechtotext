@@ -12,6 +12,19 @@
       ],
       "providerPlugin": "awscloudformation",
       "service": "API Gateway"
+    },
+    "speechwebTranscribeWS": {
+      "dependsOn": [
+        {
+          "attributes": [
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "speechwebTranscribeStream"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "API Gateway WebSocket"
     }
   },
   "auth": {
@@ -28,7 +41,9 @@
         "signupAttributes": [
           "email"
         ],
-        "socialProviders": ["GOOGLE"],
+        "socialProviders": [
+          "GOOGLE"
+        ],
         "usernameAttributes": [
           "email"
         ],
@@ -43,6 +58,20 @@
   },
   "function": {
     "speechwebTranscribe": {
+      "build": true,
+      "dependsOn": [
+        {
+          "attributes": [
+            "BucketName"
+          ],
+          "category": "storage",
+          "resourceName": "speechwebStorage"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    },
+    "speechwebTranscribeStream": {
       "build": true,
       "dependsOn": [
         {
