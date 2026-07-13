@@ -1,9 +1,10 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, unlinkSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const DATA_DIR = join(__dirname, 'data')
+const BACKUP_DIR = join(DATA_DIR, 'backups')
 const DB_PATH = join(DATA_DIR, 'db.json')
 
 const DEFAULT_DB = {
@@ -12,20 +13,20 @@ const DEFAULT_DB = {
 }
 
 const MAX_DB_SIZE = 50 * 1024 * 1024
+const MAX_BACKUPS = 10
 
-function ensureDir() {
-  if (!existsSync(DATA_DIR)) {
-    mkdirSync(DATA_DIR, { recursive: true, mode: 0o700 })
+function ensureDir(dir) {
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true, mode: 0o700 })
   }
 }
 
 function read() {
-  ensureDir()
+  ensureDir(DATA_DIR)
   if (!existsSync(DB_PATH)) {
     writeSync(JSON.parse(JSON.stringify(DEFAULT_DB)))
     return JSON.parse(JSON.stringify(DEFAULT_DB))
   }
-  const stat = existsSync(DB_PATH) ? null : null
   try {
     const size = readFileSync(DB_PATH).length
     if (size > MAX_DB_SIZE) {
@@ -37,21 +38,74 @@ function read() {
   }
 }
 
+function rotateBackups() {
+  ensureDir(BACKUP_DIR)
+  const files = readdirSync(BACKUP_DIR)
+    .filter(f => f.endsWith('.json'))
+    .map(f => ({ name: f, path: join(BACKUP_DIR, f), time: readFileSync(join(BACKUP_DIR, f)).length }))
+    .sort((a, b) => b.time - a.time)
+
+  while (files.length >= MAX_BACKUPS) {
+    const oldest = files.pop()
+    try { unlinkSync(oldest.path) } catch {}
+  }
+}
+
 function writeSync(data) {
-  ensureDir()
+  ensureDir(DATA_DIR)
+
+  const json = JSON.stringify(data, null, 2)
+
+  rotateBackups()
+  const backupPath = join(BACKUP_DIR, `db-${Date.now()}.json`)
+  try {
+    writeFileSync(backupPath, json, 'utf-8', { mode: 0o600 })
+  } catch {
+    // backup failure is non-fatal
+  }
+
   const tmpPath = DB_PATH + '.tmp'
-  writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf-8', { mode: 0o600 })
+  writeFileSync(tmpPath, json, 'utf-8', { mode: 0o600 })
   try {
     const existing = readFileSync(tmpPath, 'utf-8')
     JSON.parse(existing)
   } catch {
     throw new Error('Database write validation failed')
   }
+
   writeFileSync(DB_PATH, readFileSync(tmpPath))
   try { readFileSync(DB_PATH, 'utf-8') } catch {}
+
+  try { unlinkSync(tmpPath) } catch {}
 }
 
+export function restoreLatestBackup() {
+  ensureDir(BACKUP_DIR)
+  const files = readdirSync(BACKUP_DIR)
+    .filter(f => f.startsWith('db-') && f.endsWith('.json'))
+    .sort()
+  if (files.length === 0) return false
+  const latest = files[files.length - 1]
+  try {
+    const data = JSON.parse(readFileSync(join(BACKUP_DIR, latest), 'utf-8'))
+    writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf-8', { mode: 0o600 })
+    return true
+  } catch {
+    return false
+  }
+}
 
+export function backup() {
+  ensureDir(BACKUP_DIR)
+  try {
+    const data = readFileSync(DB_PATH, 'utf-8')
+    const backupPath = join(BACKUP_DIR, `db-manual-${Date.now()}.json`)
+    writeFileSync(backupPath, data, 'utf-8', { mode: 0o600 })
+    return backupPath
+  } catch {
+    return null
+  }
+}
 
 function sanitizeObject(obj) {
   if (typeof obj !== 'object' || obj === null) return obj

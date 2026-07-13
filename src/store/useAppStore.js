@@ -12,6 +12,14 @@ const useAppStore = create((set, get) => ({
   permissionState: 'prompt',
   transcriptionError: null,
 
+  sidebarOpen: false,
+  activePanel: null,
+  userProfile: null,
+  historyItems: [],
+  historyLoading: false,
+  confirmDialog: null,
+  hasUnsavedChanges: false,
+
   canRecord: () => get().appState === 'idle',
   canTranscribe: () => get().appState === 'recording' && get().audioBlob !== null,
   canEdit: () => get().appState === 'transcribing' || get().appState === 'editing',
@@ -35,7 +43,7 @@ const useAppStore = create((set, get) => ({
     appState: 'editing',
   }),
 
-  updateTranscript: (text) => set({ editedTranscript: text }),
+  updateTranscript: (text) => set({ editedTranscript: text, hasUnsavedChanges: true }),
 
   resetTranscript: () => {
     const { rawTranscript } = get()
@@ -43,6 +51,21 @@ const useAppStore = create((set, get) => ({
   },
 
   setExportStatus: (status) => set({ exportStatus: status }),
+
+  toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
+  closeSidebar: () => set({ sidebarOpen: false }),
+
+  setActivePanel: (panel) => set({ activePanel: panel, sidebarOpen: false }),
+
+  setUserProfile: (profile) => set({ userProfile: profile }),
+
+  setHistoryItems: (items) => set({ historyItems: items }),
+  setHistoryLoading: (loading) => set({ historyLoading: loading }),
+
+  setConfirmDialog: (dialog) => set({ confirmDialog: dialog }),
+  clearConfirmDialog: () => set({ confirmDialog: null }),
+
+  setHasUnsavedChanges: (val) => set({ hasUnsavedChanges: val }),
 
   reset: () => set({
     appState: 'idle',
@@ -55,6 +78,7 @@ const useAppStore = create((set, get) => ({
     audioLevel: 0,
     permissionState: 'prompt',
     transcriptionError: null,
+    hasUnsavedChanges: false,
   }),
 }))
 

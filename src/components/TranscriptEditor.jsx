@@ -43,12 +43,12 @@ export default function TranscriptEditor() {
         </div>
 
         <div className={clsx(
-          'w-full min-h-[120px] p-4 rounded-xl',
+          'w-full min-h-[80px] sm:min-h-[120px] p-3 sm:p-4 rounded-xl',
           'bg-surface-1/50 border border-border/50',
-          'text-text-secondary text-base leading-relaxed italic'
+          'text-text-secondary text-sm sm:text-base leading-relaxed italic'
         )}>
           {partialTranscript || (
-            <span className="text-text-secondary/40">Speak now — transcript will appear here in real time…</span>
+            <span className="text-text-secondary/40 text-sm">Speak now — transcript will appear here in real time…</span>
           )}
         </div>
       </motion.div>
@@ -62,19 +62,19 @@ export default function TranscriptEditor() {
       exit={{ opacity: 0, y: -20 }}
       className="w-full max-w-2xl mx-auto flex flex-col gap-4"
     >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-text-secondary">
-          <DocumentTextIcon className="w-4 h-4" />
-          <span className="text-sm">{wordCount} words</span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 text-text-secondary">
+          <DocumentTextIcon className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
+          <span className="text-xs sm:text-sm">{wordCount} words</span>
         </div>
 
         {hasChanges && (
           <button
             onClick={resetTranscript}
-            className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-text-primary transition-colors focus-visible:outline-2 focus-visible:outline-accent-glow"
+            className="flex items-center gap-1 text-xs sm:text-sm text-text-secondary hover:text-text-primary transition-colors focus-visible:outline-2 focus-visible:outline-accent-glow"
           >
-            <ArrowPathIcon className="w-3.5 h-3.5" />
-            Reset to original
+            <ArrowPathIcon className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
+            Reset original
           </button>
         )}
       </div>
@@ -84,9 +84,9 @@ export default function TranscriptEditor() {
         value={editedTranscript}
         onChange={(e) => updateTranscript(e.target.value)}
         className={clsx(
-          'w-full min-h-[200px] max-h-[60vh] p-4 rounded-xl resize-y',
+          'w-full min-h-[150px] sm:min-h-[200px] max-h-[50vh] sm:max-h-[60vh] p-3 sm:p-4 rounded-xl resize-y',
           'bg-surface-1 border border-border',
-          'text-text-primary text-base leading-relaxed',
+          'text-text-primary text-sm sm:text-base leading-relaxed',
           'placeholder:text-text-secondary/50',
           'focus:outline-none focus:border-accent-glow focus:shadow-glow-sm',
           'transition-all duration-200'
@@ -96,7 +96,7 @@ export default function TranscriptEditor() {
         spellCheck
       />
 
-      <p className="text-xs text-text-secondary/60">
+      <p className="text-[10px] sm:text-xs text-text-secondary/60 text-center sm:text-left">
         Edit the transcript freely. Your changes won't affect the original recording.
       </p>
     </motion.div>

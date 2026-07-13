@@ -25,6 +25,8 @@ html {
 body {
   min-height: 100vh;
   min-height: 100dvh;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
   background:
     radial-gradient(circle at top, rgba(255,255,255,0.06), transparent 30%),
     radial-gradient(circle at bottom right, rgba(255,255,255,0.04), transparent 28%),
@@ -61,6 +63,23 @@ body::after {
 
 button, input, textarea {
   font: inherit;
+}
+
+/* Smooth iOS scrolling */
+.panel-scroll {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Custom scrollbar for panels */
+.panel-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.panel-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.panel-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
 }
 
 /* Reduced motion */

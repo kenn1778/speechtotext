@@ -5,6 +5,7 @@ import { Authenticator } from '@aws-amplify/ui-react'
 import '@aws-amplify/ui-react/styles.css'
 import awsExports from './aws-exports.js'
 import App from './App.jsx'
+import ErrorBoundary from './components/ErrorBoundary'
 import './index.css'
 
 Amplify.configure(awsExports)
@@ -12,7 +13,9 @@ Amplify.configure(awsExports)
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <Authenticator>
-      <App />
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
     </Authenticator>
   </React.StrictMode>
 )

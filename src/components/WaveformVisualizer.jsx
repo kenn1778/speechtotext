@@ -10,8 +10,9 @@ export default function WaveformVisualizer({ isActive }) {
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
-    let w = 200
-    let h = 48
+    const parent = canvas.parentElement
+    const w = Math.min(parent?.clientWidth || 200, 200)
+    const h = 48
 
     canvas.width = w
     canvas.height = h
@@ -71,7 +72,7 @@ export default function WaveformVisualizer({ isActive }) {
   return (
     <canvas
       ref={canvasRef}
-      className="w-[200px] h-12"
+      className="w-full max-w-[200px] h-12"
       role="img"
       aria-label={isActive ? 'Audio waveform visualizer' : 'Inactive waveform'}
       style={{ imageRendering: 'crisp-edges' }}

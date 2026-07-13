@@ -160,7 +160,7 @@ export default function Recorder() {
     stopRecording()
   }, [])
 
-  const handleReset = useCallback(() => {
+  const doReset = useCallback(() => {
     clearTimer()
     if (fallbackTimeoutRef.current) {
       clearTimeout(fallbackTimeoutRef.current)
@@ -184,6 +184,18 @@ export default function Recorder() {
     reset()
   }, [clearTimer, reset, setPartialTranscript, setTranscriptionError])
 
+  const handleReset = useCallback(() => {
+    if (appState === 'recording' || appState === 'transcribing') {
+      useAppStore.getState().setConfirmDialog({
+        message: 'Are you sure you want to abandon the current recording?',
+        confirmLabel: 'Abandon',
+        onConfirm: () => doReset(),
+      })
+    } else {
+      doReset()
+    }
+  }, [appState, doReset])
+
   const formatTime = (s) => {
     const m = Math.floor(s / 60)
     const sec = s % 60
@@ -203,13 +215,13 @@ export default function Recorder() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="flex flex-col items-center gap-6 p-8"
+      className="flex flex-col items-center gap-4 sm:gap-6 p-4 sm:p-8"
     >
       {error && (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm max-w-md text-center"
+          className="px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs sm:text-sm w-full max-w-md text-center"
           role="alert"
         >
           {error}
@@ -220,48 +232,50 @@ export default function Recorder() {
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm max-w-md text-center flex items-center gap-2 justify-center"
+          className="px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs sm:text-sm w-full max-w-md text-center flex items-center gap-2 justify-center"
           role="alert"
         >
-          <ExclamationTriangleIcon className="w-4 h-4 flex-shrink-0" />
+          <ExclamationTriangleIcon className="w-3.5 sm:w-4 h-3.5 sm:h-4 flex-shrink-0" />
           <span>Streaming failed. Falling back to batch transcription if recorded.</span>
         </motion.div>
       )}
 
       <WaveformVisualizer isActive={isRecording} />
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center justify-center gap-3 flex-wrap">
         {showControls && (
           <>
-            <span className="text-2xl font-mono tabular-nums text-text-secondary min-w-[4ch]">
+            <span className="text-xl sm:text-2xl font-mono tabular-nums text-text-secondary min-w-[4ch] text-center">
               {formatTime(elapsed)}
             </span>
 
-            {isRecording ? (
-              <button
-                onClick={handlePause}
-                className="flex items-center gap-2 px-5 py-3 rounded-xl bg-surface-1 text-text-secondary border border-border hover:bg-surface-2 transition-all duration-200 focus-visible:outline-2 focus-visible:outline-accent-glow"
-                aria-label="Pause recording"
-              >
-                <PauseIcon className="w-5 h-5" />
-              </button>
-            ) : isPaused ? (
-              <button
-                onClick={handleResume}
-                className="flex items-center gap-2 px-5 py-3 rounded-xl bg-surface-1 text-text-secondary border border-border hover:bg-surface-2 transition-all duration-200 focus-visible:outline-2 focus-visible:outline-accent-glow"
-                aria-label="Resume recording"
-              >
-                <MicrophoneIcon className="w-5 h-5" />
-              </button>
-            ) : null}
+            <div className="flex items-center gap-2">
+              {isRecording ? (
+                <button
+                  onClick={handlePause}
+                  className="flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-surface-1 text-text-secondary border border-border hover:bg-surface-2 transition-all duration-200 focus-visible:outline-2 focus-visible:outline-accent-glow"
+                  aria-label="Pause recording"
+                >
+                  <PauseIcon className="w-4 sm:w-5 h-4 sm:h-5" />
+                </button>
+              ) : isPaused ? (
+                <button
+                  onClick={handleResume}
+                  className="flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-surface-1 text-text-secondary border border-border hover:bg-surface-2 transition-all duration-200 focus-visible:outline-2 focus-visible:outline-accent-glow"
+                  aria-label="Resume recording"
+                >
+                  <MicrophoneIcon className="w-4 sm:w-5 h-4 sm:h-5" />
+                </button>
+              ) : null}
 
-            <button
-              onClick={handleStop}
-              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all duration-200 focus-visible:outline-2 focus-visible:outline-red-500"
-              aria-label="Stop and transcribe"
-            >
-              <StopIcon className="w-5 h-5" />
-            </button>
+              <button
+                onClick={handleStop}
+                className="flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all duration-200 focus-visible:outline-2 focus-visible:outline-red-500"
+                aria-label="Stop and transcribe"
+              >
+                <StopIcon className="w-4 sm:w-5 h-4 sm:h-5" />
+              </button>
+            </div>
           </>
         )}
       </div>
@@ -284,7 +298,7 @@ export default function Recorder() {
           animate={{ opacity: 1 }}
           className="w-full max-w-md text-center"
         >
-          <p className="text-sm text-text-secondary/70 italic leading-relaxed">
+          <p className="text-xs sm:text-sm text-text-secondary/70 italic leading-relaxed">
             {partialTranscript}
           </p>
         </motion.div>
@@ -300,17 +314,17 @@ export default function Recorder() {
             {[0, 1, 2].map((i) => (
               <motion.div
                 key={i}
-                className="w-2 h-2 rounded-full bg-accent-glow"
+                className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-accent-glow"
                 animate={{ opacity: [0.3, 1, 0.3] }}
                 transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
               />
             ))}
           </div>
-          <p className="text-sm text-text-secondary">
+          <p className="text-xs sm:text-sm text-text-secondary">
             {fallbackMode ? 'Transcribing via batch service…' : 'Transcribing via streaming…'}
           </p>
           {partialTranscript && (
-            <p className="text-sm text-text-secondary/70 max-w-md text-center italic">
+            <p className="text-xs sm:text-sm text-text-secondary/70 max-w-md text-center italic">
               {partialTranscript}
             </p>
           )}

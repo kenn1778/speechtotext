@@ -2,13 +2,32 @@ import { useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { DocumentArrowDownIcon, PhotoIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
 import clsx from 'clsx'
+import { useAuthenticator } from '@aws-amplify/ui-react'
 import useAppStore from '../store/useAppStore'
 import { generatePdf } from '../lib/pdfService'
 import { generateSlidesPdf, generateSlides } from '../lib/slideService'
+import { addHistoryItem } from '../lib/apiClient'
 
 export default function ExportControls() {
-  const { appState, editedTranscript, canExport, setExportStatus, exportStatus } = useAppStore()
+  const { user } = useAuthenticator()
+  const { appState, editedTranscript, canExport, setExportStatus, exportStatus, setHistoryItems, historyItems } = useAppStore()
   const [exportError, setExportError] = useState(null)
+
+  const userId = user?.userId || user?.username
+
+  const saveToHistory = useCallback(async (type) => {
+    if (!userId) return
+    try {
+      const entry = await addHistoryItem(userId, {
+        type,
+        transcript: editedTranscript,
+        preview: editedTranscript.slice(0, 100),
+      })
+      setHistoryItems([entry, ...historyItems])
+    } catch {
+      // silent
+    }
+  }, [userId, editedTranscript, setHistoryItems, historyItems])
 
   const handleExportPdf = useCallback(async () => {
     setExportError(null)
@@ -17,11 +36,12 @@ export default function ExportControls() {
       const { blob } = await generatePdf(editedTranscript)
       downloadBlob(blob, 'speechweb-transcript.pdf')
       setExportStatus('ready')
+      saveToHistory('pdf')
     } catch (err) {
       setExportError(err.message)
       setExportStatus('idle')
     }
-  }, [editedTranscript, setExportStatus])
+  }, [editedTranscript, setExportStatus, saveToHistory])
 
   const handleExportSlides = useCallback(async () => {
     setExportError(null)
@@ -31,11 +51,12 @@ export default function ExportControls() {
       const { blob } = await generateSlidesPdf(slides)
       downloadBlob(blob, 'speechweb-slides.pdf')
       setExportStatus('ready')
+      saveToHistory('slides')
     } catch (err) {
       setExportError(err.message)
       setExportStatus('idle')
     }
-  }, [editedTranscript, setExportStatus])
+  }, [editedTranscript, setExportStatus, saveToHistory])
 
   function downloadBlob(blob, filename) {
     const url = URL.createObjectURL(blob)
@@ -61,12 +82,12 @@ export default function ExportControls() {
     >
       <p className="text-sm text-text-secondary">Export your transcript</p>
 
-      <div className="flex flex-wrap items-center justify-center gap-3">
+      <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 w-full">
         <button
           onClick={handleExportPdf}
           disabled={isGenerating}
           className={clsx(
-            'flex items-center gap-2 px-5 py-3 rounded-xl',
+            'flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl flex-1 sm:flex-none min-w-[140px]',
             'bg-surface-1 border border-border text-text-primary',
             'hover:bg-surface-2 hover:border-border-strong',
             'transition-all duration-200',
@@ -74,15 +95,15 @@ export default function ExportControls() {
             isGenerating && 'opacity-50 cursor-not-allowed'
           )}
         >
-          <DocumentArrowDownIcon className="w-5 h-5" />
-          Export PDF
+          <DocumentArrowDownIcon className="w-4 sm:w-5 h-4 sm:h-5" />
+          <span className="text-xs sm:text-sm">Export PDF</span>
         </button>
 
         <button
           onClick={handleExportSlides}
           disabled={isGenerating}
           className={clsx(
-            'flex items-center gap-2 px-5 py-3 rounded-xl',
+            'flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl flex-1 sm:flex-none min-w-[140px]',
             'bg-surface-1 border border-border text-text-primary',
             'hover:bg-surface-2 hover:border-border-strong',
             'transition-all duration-200',
@@ -90,8 +111,8 @@ export default function ExportControls() {
             isGenerating && 'opacity-50 cursor-not-allowed'
           )}
         >
-          <PhotoIcon className="w-5 h-5" />
-          Export Slides
+          <PhotoIcon className="w-4 sm:w-5 h-4 sm:h-5" />
+          <span className="text-xs sm:text-sm">Export Slides</span>
         </button>
       </div>
 

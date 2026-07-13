@@ -195,3 +195,26 @@ SpeechWeb is a web application built with React.js, Tailwind CSS, and modern ani
 ## Conclusion
 
 SpeechWeb should be a visually striking yet functional React application that turns recorded speech into text, then exports that text as a PDF or slide deck. By combining React, Tailwind, modern animation libraries, and careful ethical design, the app can deliver both polish and user trust.
+
+
+
+
+
+
+
+
+
+
+THINGS TO NOTE BEFORE PUSHING APP TO PRODUCTION
+   ~AUHORIZATION:
+      -When a user is loggd in, can they only access their won data ? and   nothing else.
+      -validation and Sanitization {Parameterised queries}
+      -CORS Policy Configuration
+       Rate limiting on API endpionts
+      -Password Link expiration(15-30mins at most)
+      -Error Handling in the frontend(having diferent screens for different
+       type of erreos making usre the users doesnt see a raw stack trace)
+      -Indexing{DataBase Indexes}
+      -Logging (for debugs)basically prints statement in production.
+      -Alerts {for admins }getting immediate alert if anything goes wrong inthe app
+      -Rollback Strategy
