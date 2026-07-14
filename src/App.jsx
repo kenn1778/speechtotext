@@ -13,6 +13,7 @@ import ConfirmDialog from './components/ConfirmDialog'
 import UserProfilePanel from './components/UserProfilePanel'
 import HistoryPanel from './components/HistoryPanel'
 import { fetchProfile, addHistoryItem } from './lib/apiClient'
+import useInactivityTimeout from './hooks/useInactivityTimeout'
 
 function WelcomeScreen({ onStart }) {
   const { user, signOut } = useAuthenticator()
@@ -168,9 +169,16 @@ function HeaderActions() {
 }
 
 export default function App() {
-  const { appState, activePanel, setActivePanel, setUserProfile, editedTranscript, setHistoryItems, historyItems } = useAppStore()
-  const { user } = useAuthenticator()
+  const { appState, activePanel, setActivePanel, setUserProfile, editedTranscript, setHistoryItems, historyItems, reset } = useAppStore()
+  const { user, signOut } = useAuthenticator()
   const prevAppStateRef = useRef(appState)
+
+  useInactivityTimeout(
+    useCallback(() => {
+      reset()
+      signOut()
+    }, [reset, signOut])
+  )
 
   const userId = user?.userId || user?.username
 
