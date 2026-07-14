@@ -33,3 +33,5 @@ acme.sh/
 .vscode/
 
 dist.zip
+
+build-log.txt
