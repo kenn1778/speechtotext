@@ -1,9 +1,0 @@
-{
-  "name": "speechwebTranscribe",
-  "version": "1.0.0",
-  "dependencies": {
-    "@aws-sdk/client-transcribe": "^3.500.0",
-    "@aws-sdk/client-s3": "^3.500.0",
-    "jsonwebtoken": "^9.0.2"
-  }
-}
