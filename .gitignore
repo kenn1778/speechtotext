@@ -32,3 +32,5 @@ server/data/db.json
 server/data/*.tmp
 acme.sh/
 .vscode/
+
+dist.zip
