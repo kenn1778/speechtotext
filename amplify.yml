@@ -9,8 +9,8 @@ env:
     VITE_COGNITO_IDENTITY_POOL_ID: "us-east-1:aab2a86d-a088-41e7-8e92-eeb9af4806fe"
     VITE_COGNITO_WEB_CLIENT_ID: "6uafsoq8rlvuh3aj0opluh1l2t"
     VITE_COGNITO_DOMAIN: "speechweb-auth-dev.auth.us-east-1.amazoncognito.com"
-    VITE_REDIRECT_SIGN_IN: "https://main.d2vptgs9b8n190.amplifyapp.com/"
-    VITE_REDIRECT_SIGN_OUT: "https://main.d2vptgs9b8n190.amplifyapp.com/"
+    VITE_REDIRECT_SIGN_IN: "https://main.dez6w4i1oyhvb.amplifyapp.com/"
+    VITE_REDIRECT_SIGN_OUT: "https://main.dez6w4i1oyhvb.amplifyapp.com/"
 frontend:
   phases:
     preBuild:
