@@ -59,7 +59,9 @@ const useAppStore = create((set, get) => ({
 
   setUserProfile: (profile) => set({ userProfile: profile }),
 
-  setHistoryItems: (items) => set({ historyItems: items }),
+  setHistoryItems: (items) => set((state) => ({
+    historyItems: typeof items === 'function' ? items(state.historyItems) : items,
+  })),
   setHistoryLoading: (loading) => set({ historyLoading: loading }),
 
   setConfirmDialog: (dialog) => set({ confirmDialog: dialog }),
